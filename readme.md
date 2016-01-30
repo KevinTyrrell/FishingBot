@@ -2,6 +2,11 @@ Fishing Bot
 
 This is a program designed to automate the Fishing skill in World of Warcraft. The program uses pixel recognition to detect the fishing bobber, then it proceeds to scan around the bobber ~8 times a second a determines a 'score' for the level of blue in the frame. If the difference of blue changes from its' orignal state to a high degree, the program will click the bobber and attempt to loot the fish.
 
+Instructions: 
+
+* Ensure Java is up to date.
+* Run "FishingBot.jar"
+
 Necessary considerations before using:
 
 * Requires Java 8 or above.
@@ -24,3 +29,6 @@ Notes:
 
 * This program should work on all versions of World of Warcraft. 
 * See the video attached for more information.
+
+Contact:
+kev070892@gmail.com for any questions.
