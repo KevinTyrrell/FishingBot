@@ -1,6 +1,5 @@
 package program;
 
-import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -14,185 +13,207 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Random;
 
 import static java.awt.event.KeyEvent.*;
 import Exceptions.ApplicationNotFound;
 
-public class Logic
+/**
+ * Abstract class which handles all calculations and loops
+ * regarding the different phases of fishing.
+ * @author Kevin
+ *
+ */
+public abstract class Logic
 {
-	private Robot pc;
-	private boolean fishingActive;
-	private Random generator;
+	/** Robot object which allows us to control the mouse, keyboard, etc. */
+	public static Robot pc;
+	/** Boolean trigger in order to cancel out or begin the fishing loop. */
+	public static boolean fishingActive = false;
+	/** Random seed to allow for seudo random 'sleep' times after a successful catch. */
+	public static Random generator = new Random();
 	
 	// Gets the resolution of the user's main display.
-	GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();	
+	private static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();	
 	
-	// Set by the user to calibrate the fishing.
-	private Point calibrationPoint;
-
-	public Logic()
-	{
-		fishingActive = false;
-		generator = new Random();
-		
-		try
-		{
-			pc = new Robot();
-		}
-		catch (AWTException e)
-		{
-			// I am not sure how this would occur.
-			System.out.println("Unable to communicate with client controls, exiting.");
-			System.exit(1);
-		}
-	}
+	// Set by the user to allow the program to fish properly.
+	public static Point calibrationPoint;
 	
 	/**
-	 * Look for the "Fishing Bobber" tooltip in the bottom right hand corner.
-	 * If yellow pixels are present, return true that the cursor must be over the bobber.
-	 * Otherwise, return false indiciating that it was not found.
-	 * @return
+	 * Loops through the middle of the user's main display screen
+	 * in search for the fishing bobber.
+	 * IMPORTANT: The mouse MUST be moved as the program searches,
+	 * because in order to locate the bobber, the mouse MUST be
+	 * hovered over the bobber as that is the only way to display
+	 * the 'Fishing Bobber' tooltip in the bottom right hand corner.
+	 * @return whether it was successful or not.
 	 */
-	public boolean scanForBobber()
+	public static boolean scanForBobber()
 	{			
+		// Loop through a given area of the display, while skipping over a significant amount of pixels.
 		for (int i = (int) (gd.getDisplayMode().getWidth() * 0.4); i < gd.getDisplayMode().getWidth() * 0.6; i = i + 45)
 		{
 			for (int h = (int) (gd.getDisplayMode().getHeight() * 0.3); h < gd.getDisplayMode().getHeight() * 0.7; h = h + 15)
 			{
-				// The mouse must be over the bobber for the in-game tooltip to pop up.
+				// The mouse must be moved so the bobber for the in-game tooltip to pop up.
 				pc.mouseMove(i, h);	
 				
-				// Color pixel = new Color(screenshot().getRGB(1802, 920));
+				// Get the current pixel color of where the user set their calibration point.
 				Color pixel = pc.getPixelColor((int) calibrationPoint.getX(), (int) calibrationPoint.getY());
 				
-				if (pixel.getRed() > 200 && pixel.getGreen() > 200 && pixel.getBlue() < 50)	// Yellowish color.
+				// If there is a goldish color there, then the tooltip is there and we are over the bobber.
+				if (pixel.getRed() > 200 && pixel.getGreen() > 200 && pixel.getBlue() < 50)	
 				{
 					return true;
 				}
 			}
 		}
 		
-		System.out.println("ERROR Bobber could not be found." );
-		
+		// Bobber could not be located.
 		sleep(5000);		
+		return false;
+	}
+	
+	/**
+	 * This method, after having found the bobber, rapidly checks
+	 * for the splash of water that happens when the fish bites the bobber.
+	 * This method is only called after the bobber is found.
+	 * @return whether it was successful or not.
+	 */
+	public static boolean attemptToReel()
+	{
+		// The threshhold of the color BLUE in which the program determines a splash occured.
+		double clickThreshhold = 30.0;
+		// The NORMAL amount of blue around the bobber, before it has splashed.
+		double controlBluePerPixel = checkAroundPixel((int) MouseInfo.getPointerInfo().getLocation().getX(), 
+				(int) MouseInfo.getPointerInfo().getLocation().getY());
+		
+		// The time at which we originally found the bobber.
+		long startTime = System.currentTimeMillis();
+		
+		// As long as the fishing cast is still going.
+		while (System.currentTimeMillis() - startTime < 30000)
+		{
+			// Prevent lag from too fast of scans.
+			sleep(25);
+			
+			// Determine the average amount of blue currently in each pixel.
+			double currentBluePerPixel = checkAroundPixel((int) MouseInfo.getPointerInfo().getLocation().getX(), 
+					(int) MouseInfo.getPointerInfo().getLocation().getY()) - controlBluePerPixel;
+			
+			// If there is a lot more blue than before...
+			if (currentBluePerPixel > clickThreshhold)
+			{				
+				// Shift right click.
+				pc.keyPress(KeyEvent.VK_SHIFT);
+				pc.mousePress(BUTTON3_MASK);
+				pc.mouseRelease(BUTTON3_MASK);
+				pc.keyRelease(KeyEvent.VK_SHIFT);
+				
+				// Sleep between 2 and 7 seconds randomly.
+				int randomSleep = generator.nextInt(5000);
+				sleep(2000 + randomSleep);	
+				
+				// Reset the mouse to ensure the next cast goes smoothly.
+				pc.mouseMove(200, 200);
+				
+				return true;
+			}
+		}
+		
+		// Reset the mouse to ensure the next cast goes smoothly.
+		pc.mouseMove(200, 200);
 		
 		return false;
 	}
 	
-	public boolean attemptToReel()
+	/**
+	 * 
+	 * @return
+	 */
+	public static boolean calibrate()
 	{
-		double clickThreshhold = 30.0;
+		// Sleep for 4 seconds to allow the user to get ready.
+		sleep(4000);
 		
-		try
+		// Take a screenshot.
+		BufferedImage screen = screenshot();
+		
+		// Look in the bottom right hand corner of the user's screen.
+		for (int i = (int) (screen.getWidth() * .8); i < screen.getWidth(); i++)
 		{
-			double regular = checkAroundPixel((int) MouseInfo.getPointerInfo().getLocation().getX(), (int) MouseInfo.getPointerInfo().getLocation().getY());
-			long startTime = System.currentTimeMillis();
-			
-			while (System.currentTimeMillis() - startTime < 30000)
+			for (int j = (int) (screen.getHeight() * .8); j < screen.getHeight(); j++)
 			{
-				sleep(25);
+				// Check every pixel...
+				Color pixel = convertColorFromBytes(screen.getRGB(i, j));
 				
-				double value = checkAroundPixel((int) MouseInfo.getPointerInfo().getLocation().getX(), 
-						(int) MouseInfo.getPointerInfo().getLocation().getY()) - regular;
-				System.out.println("Pixel Avg is : " + (int) value + ", Thresh : " + clickThreshhold);
-				if (value > clickThreshhold)
-				{				
-					pc.keyPress(KeyEvent.VK_SHIFT);
-					pc.mousePress(BUTTON3_MASK);
-					pc.mouseRelease(BUTTON3_MASK);
-					pc.keyRelease(KeyEvent.VK_SHIFT);
-					
-					int randomSleep = generator.nextInt(5000);
-					System.out.println(currentTime()+ " Looted. Sleeping now for " + ((2000 + randomSleep) / 1000) + " seconds.");
-					sleep(2000 + randomSleep);	
-					
-					pc.mouseMove(200, 200);
-					
+				// If the pixel is a goldish color, then we've found the Tooltip.
+				if (pixel.getRed() > 200 && pixel.getGreen() > 200 && pixel.getBlue() < 50)
+				{
+					// Move the mouse to indicate that we've found it.
+					pc.mouseMove(i, j);
+					calibrationPoint = new Point(i, j);
 					return true;
 				}
 			}
-			
-			System.out.println("ERROR: " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds have passed, no fish found." );
-			
-			pc.mouseMove(200, 200);
-			
-			return false;
-		}
-		// Array is the dimension of the primary monitor.
-		catch (java.lang.ArrayIndexOutOfBoundsException e)
-		{
-			System.out.println("Mouse cursor exited outside of the primary monitor.");
-			
-			return false;
-		}
-	}
-	
-	public boolean calibrate()
-	{
-		try
-		{
-			Thread.sleep(3000);
-		
-			BufferedImage screen = screenshot();
-			
-			for (int i = (int) (screen.getWidth() * .8); i < screen.getWidth(); i++)
-			{
-				for (int j = (int) (screen.getHeight() * .8); j < screen.getHeight(); j++)
-				{
-					Color pixel = convertColorFromBytes(screen.getRGB(i, j));
-					
-					if (pixel.getRed() > 200 && pixel.getGreen() > 200 && pixel.getBlue() < 50)	// Yellowish color.
-					{
-						System.out.println("CALIBRATED");
-						pc.mouseMove(i, j);
-						calibrationPoint = new Point(i, j);
-						return true;
-					}
-				}
-			}
-		}
-		catch (InterruptedException e)
-		{
-			// TODO Auto-generated catch block
-			System.err.println("Could not sleep!");
-			e.printStackTrace();
 		}		
 		
-		System.out.println("COULD NOT CALIBRATE");
-		
+		// Failed to calibrate.
 		return false;
 	}
 	
-	private double checkAroundPixel(int x, int y) throws java.lang.ArrayIndexOutOfBoundsException
+	/**
+	 * Searches around a given pixel on the screen
+	 * and returns a Double value for the average 
+	 * amount of BLUE in a given search area.
+	 * @param x coordinate.
+	 * @param y coordinate.
+	 * @return average blue value per pixel.
+	 */
+	private static double checkAroundPixel(int x, int y)
 	{
+		// Total counter for the amount of BLUE in the search area.
 		int total = 0;
+		
+		// Amount of pxiels to search = (Radius * 2)^2. 
 		final int PIXEL_RADIUS = 40;
 		
+		// Take a screenshot of the entire display.
 		BufferedImage screen = screenshot();
-
-		for (int i = x - PIXEL_RADIUS; i < x + PIXEL_RADIUS; i++)
+		
+		// Don't allow the loop to go out of bounds.
+		int xAxisStart = (x - PIXEL_RADIUS < 0) ? 0 : x - PIXEL_RADIUS;
+		int xAxisEnd = (x + PIXEL_RADIUS > screen.getWidth()) ? screen.getWidth() : x + PIXEL_RADIUS;
+		int yAxisStart = (y - PIXEL_RADIUS < 0) ? 0 : y - PIXEL_RADIUS;
+		int yAxisEnd = (y + PIXEL_RADIUS > screen.getWidth()) ? screen.getWidth() : y + PIXEL_RADIUS;
+		
+		// Loop through the designated pixel area.
+		for (int i = xAxisStart; i < xAxisEnd; i++)
 		{
-			for (int h = y - PIXEL_RADIUS; h < y + PIXEL_RADIUS; h++)
+			for (int h = yAxisStart; h < yAxisEnd; h++)
 			{
+				// Total up the amount of BLUE in this area.
 				total += (screen.getRGB(i, h))&0xFF;
 			}
 		}		
 		
-		System.out.println(currentTime() + " Searched around pixel.");;
+		/*
+		 * Return the average amount of BLUE per pixel.
+		 * Note: '*1.0' exists to force 'double divison'.
+		 */
 		return total / (PIXEL_RADIUS*PIXEL_RADIUS*1.0);
 	}
 	
 	/**
-	 * Checks if specified application is running.
-	 * @param process
-	 * @return
-	 * @throws ApplicationNotFound 
-	 * @throws IOException 
-	 * @throws Exception
+	 * Checks if a given process is running.
+	 * This is possibly window's specific.
+	 * @param process name.
+	 * @return whether the process is running or not.
+	 * @throws ApplicationNotFound
+	 * @throws IOException
 	 */
-	public boolean processIsRunning(String process) throws ApplicationNotFound, IOException
+	public static boolean processIsRunning(String process) throws ApplicationNotFound, IOException
 	{
 		String line;
 		String pidInfo = "";
@@ -221,7 +242,7 @@ public class Logic
 	 * @param color integer.
 	 * @return Color object.
 	 */
-	private Color convertColorFromBytes(int color)
+	private static Color convertColorFromBytes(int color)
 	{
 		int alpha = (color >>> 24) & 0xFF;
 		int red   = (color >>> 16) & 0xFF;
@@ -236,12 +257,17 @@ public class Logic
 	 * user's primary monitor, incase the user has multiple monitors.
 	 * @return BufferedImage screenshot.
 	 */
-	public BufferedImage screenshot()
+	public static BufferedImage screenshot()
 	{	
 		return pc.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
 	}
 
-	public void Say(String sentence)
+	/**
+	 * Method in order to type in chat.
+	 * The bot will use this to call '/cast Fishing'
+	 * @param sentence.
+	 */
+	public static void Say(String sentence)
 	{
 		Press(KeyEvent.VK_ENTER);
 
@@ -253,14 +279,23 @@ public class Logic
 		Press(KeyEvent.VK_ENTER);
 	}
 
-	private void Press(int key)
+	/**
+	 * Helper function to press a key on the keyboard.
+	 * @param key code.
+	 */
+	private static void Press(int key)
 	{
 		pc.keyPress(key);
 		pc.delay(100);
 		pc.keyRelease(key);
 	}
 
-	public void type(char character) 
+	/**
+	 * Given a char value, this method will type
+	 * that given key via virtual keys.
+	 * @param character to type.
+	 */
+	public static void type(char character) 
 	{
         switch (character) 
         {
@@ -368,12 +403,16 @@ public class Logic
         }
     }
 
-    private void doType(int... keyCodes) 
+	/**
+	 * Helper method to type multiple keys at once.
+	 * @param keyCodes
+	 */
+    private static void doType(int... keyCodes) 
     {
         doType(keyCodes, 0, keyCodes.length);
     }
 
-    private void doType(int[] keyCodes, int offset, int length) 
+    private static void doType(int[] keyCodes, int offset, int length) 
     {
     	if (length == 0) 
        	{
@@ -385,6 +424,11 @@ public class Logic
         pc.keyRelease(keyCodes[offset]);
     }
     
+    /**
+     * Sleep method so I don't have to keep putting 'Try Catches'
+     * for the InterruptedException that Thread.sleep() produces.
+     * @param miliseconds to sleep for.
+     */
     public static void sleep(int miliseconds)
     {
     	try
@@ -397,34 +441,19 @@ public class Logic
 		}
     }
     
-    /**
-     * Prints out the exact time of the day in a 12 hour scale.
-     * Does not specify AM/PM.
-     * Format is HOUR:MINUTE:SECOND
-     * @return String representation of the time of day.
-     */
-    public static String currentTime()
-    {
-    	return "" + Math.abs(LocalDateTime.now().getHour() - 12) + ":" + LocalDateTime.now().getMinute() + ":" + LocalDateTime.now().getSecond();
-    }
+	/**
+	 * Prints the current System time followed by a message.
+	 * @param messageString.
+	 */
+	public static void printTimeStamp(String messageString)
+	{		
+		LocalTime now = LocalTime.now();
+		
+		String hour = "", minute = "", second = "";
+		hour = (now.getHour() > 12) ? "" + (now.getHour() % 12) : "" + now.getHour();
+		minute = (now.getMinute() < 10) ? "0" + now.getMinute() : "" + now.getMinute();
+		second = (now.getSecond() < 10) ? "0" + now.getSecond() : "" + now.getSecond();
 
-	public boolean isFishingActive()
-	{
-		return fishingActive;
-	}
-
-	public void setFishingActive(boolean fishingActive)
-	{
-		this.fishingActive = fishingActive;
-	}
-
-	public Point getCalibrationPoint()
-	{
-		return calibrationPoint;
-	}
-
-	public void setCalibrationPoint(Point calibrationPoint)
-	{
-		this.calibrationPoint = calibrationPoint;
+		System.out.println(hour + ":" + minute + ":" + second + ((now.getHour() < 12) ? " AM" : " PM") + " : " + messageString);
 	}
 }

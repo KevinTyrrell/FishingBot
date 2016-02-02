@@ -1,6 +1,9 @@
 package gui;
 
 
+import java.awt.AWTException;
+import java.awt.Robot;
+
 import program.*;
 import javafx.application.Application;
 import javafx.scene.control.Button;
@@ -17,13 +20,27 @@ import javafx.geometry.Pos;
 import javafx.scene.paint.Color;
 
 
-@SuppressWarnings("restriction") public class GUI extends Application
+public class GUI extends Application
 {
-	Logic app = new Logic();
 	static VBox console;	
 	
 	@Override public void start(Stage primaryStage) throws InterruptedException
 	{
+		try
+		{
+			Logic.pc = new Robot();
+		}
+		catch (AWTException e1)
+		{
+			// Cannot communicate with the PC. Exiting.
+			ConfirmationBox warning = new ConfirmationBox(primaryStage.getOwner(), ""
+					+ "FishingBot has failed to communicate with your client controls.\n"
+					+ "The program must now exit.");
+			warning.showAndWait();
+			System.exit(1);
+			e1.printStackTrace();
+		}
+		
 		VBox root = new VBox();
 		root.setPadding(new Insets(10, 10, 0, 10));
 		root.setAlignment(Pos.TOP_CENTER);
@@ -48,29 +65,29 @@ import javafx.scene.paint.Color;
 		start.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
 		start.setOnAction(e ->		
 		{
-			if (app.getCalibrationPoint() != null)
+			if (Logic.calibrationPoint != null)
 			{
 				// User wants to start fishing.
-				app.setFishingActive(true);
+				Logic.fishingActive = true;
 				sendAlert("Fishing Mode: ON");
 				
-				// Must be created in its own thread.
+				// Loop should be on it's own thread so it doesn't freeze the GUI.
 				new Thread(new Runnable() 
 			    { 
 					public void run() 
 					{ 
 						// Continue until told otherwise.
-						while (app.isFishingActive())
+						while (Logic.fishingActive)
 						{
+							// Start fishing.
 							Logic.sleep(3000);
+							Logic.Say("/cast Fishing");
 							
-							app.Say("/cast Fishing");
-							
+							// Look the the bobber.
 							Logic.sleep(500);
-							
-							if (app.scanForBobber())
+							if (Logic.scanForBobber())
 							{
-								app.attemptToReel();
+								Logic.attemptToReel();
 							}
 						}
 					} 
@@ -78,32 +95,36 @@ import javafx.scene.paint.Color;
 			}
 			else 
 			{
-				sendAlert("Error! Cannot run while uncalibrated!");
+				ConfirmationBox warning = new ConfirmationBox(primaryStage.getOwner(), ""
+						+ "FishingBot must be calibrated first before it can be used!");
+				warning.showAndWait();
 			}
 		});
 		
+		// End Fishing Button.
 		Button end = new Button("End Fishing");
 		end.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
 		end.setOnAction(e ->		
 		{
-			if (app.isFishingActive())
+			if (Logic.fishingActive)
 			{
-				// User wants to start fishing.
-				app.setFishingActive(false);
+				// User wants to stop fishing.
+				Logic.fishingActive = false;
 				sendAlert("Fishing Mode: OFF");
 			}
 		});
 		
+		// Calibration Button.
 		Button calibrate = new Button("Calibrate");
 		calibrate.setTooltip(new Tooltip("Before each use, press this button and hover over the\n"
 						+ "fishing bobber for five seconds, or until you see \"CALBIRATED\""));
 		calibrate.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
 		calibrate.setOnAction(e ->
 		{
-			sendAlert("Calibrating");
-			app.calibrate();
+			sendAlert(Logic.calibrate() ? "Calibration successful." : "Calibration FAILED.");
 		});
 
+		// Add all the fields to the layout.
 		root.getChildren().addAll(consoleTitle, scrollingConsole, start, end, calibrate);
 
 		primaryStage.setTitle("FishingBot");
@@ -123,14 +144,5 @@ import javafx.scene.paint.Color;
 	public static void sendAlert(String message)
 	{		
 		console.getChildren().add(0, new Label(message));
-		
-		/*LinkedList<Node> notifications = new LinkedList<>(console.getChildren());
-		notifications.addFirst(new Label(message));
-		console.getChildren().clear();
-		
-		for (Node i : notifications)
-		{
-			console.getChildren().add(i);
-		}*/
 	}
 }
