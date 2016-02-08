@@ -52,7 +52,7 @@ public abstract class Logic
 	public static boolean scanForBobber()
 	{			
 		// Loop through a given area of the display, while skipping over a significant amount of pixels.
-		for (int i = (int) (gd.getDisplayMode().getWidth() * 0.4); i < gd.getDisplayMode().getWidth() * 0.6; i = i + 45)
+		for (int i = (int) (gd.getDisplayMode().getWidth() * 0.3); i < gd.getDisplayMode().getWidth() * 0.7; i = i + 45)
 		{
 			for (int h = (int) (gd.getDisplayMode().getHeight() * 0.3); h < gd.getDisplayMode().getHeight() * 0.7; h = h + 15)
 			{
