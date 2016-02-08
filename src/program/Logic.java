@@ -51,7 +51,10 @@ public abstract class Logic
 	 */
 	public static boolean scanForBobber()
 	{
-		final int HORIZONTAL_JUMP_DISTANCE = 45, VERTICAL_JUMP_DISTANCE = 18;
+		// For users with slower computers. Their GPU needs time to load the Bobber in.
+		sleep(2000);
+		
+		final int HORIZONTAL_JUMP_DISTANCE = 45, VERTICAL_JUMP_DISTANCE = 15;
 		int screenWidth = gd.getDisplayMode().getWidth();
 		int screenHeight = gd.getDisplayMode().getHeight();
 		
