@@ -107,7 +107,7 @@ public class GUI extends Application
 								if (Logic.scanForBobber())
 								{
 									sendAlert(Logic.attemptToReel() ? "Fish caught and looted." 
-											: "Was unable to detect splash!");
+											: "Could not detect a splash!");
 								}
 								else 
 								{

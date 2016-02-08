@@ -50,11 +50,15 @@ public abstract class Logic
 	 * @return whether it was successful or not.
 	 */
 	public static boolean scanForBobber()
-	{			
+	{
+		final int HORIZONTAL_JUMP_DISTANCE = 45, VERTICAL_JUMP_DISTANCE = 18;
+		int screenWidth = gd.getDisplayMode().getWidth();
+		int screenHeight = gd.getDisplayMode().getHeight();
+		
 		// Loop through a given area of the display, while skipping over a significant amount of pixels.
-		for (int i = (int) (gd.getDisplayMode().getWidth() * 0.3); i < gd.getDisplayMode().getWidth() * 0.7; i = i + 45)
+		for (int i = (int) (screenWidth * 0.3); i < screenWidth * 0.7; i = i + HORIZONTAL_JUMP_DISTANCE)
 		{
-			for (int h = (int) (gd.getDisplayMode().getHeight() * 0.3); h < gd.getDisplayMode().getHeight() * 0.7; h = h + 15)
+			for (int h = (int) (screenHeight * 0.5); h < screenHeight * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
 			{
 				// The mouse must be moved so the bobber for the in-game tooltip to pop up.
 				pc.mouseMove(i, h);	
