@@ -50,14 +50,18 @@ public class SquareSelector extends Stage
 		// When the user first clicks, prepare to create our rectangle.
 		root.setOnMousePressed(e ->
 		{
+			// Erase the previous Rectangle.
 			rect.setWidth(0);
 			rect.setHeight(0);
+			// Set the anchor point for our rectangle.
 			rect.setX(e.getX());
 			rect.setY(e.getY());
 		});
 		
+		// As the user drags the rectangle.
 		root.setOnMouseDragged(e ->
 		{
+			// 
 			double width = e.getX() - rect.getX();
 			double height = e.getY() - rect.getY();
 			
@@ -65,10 +69,12 @@ public class SquareSelector extends Stage
 			rect.setHeight(height);
 		});
 		
+		
 		Scene scene = new Scene(root, Logic.display.getWidth(), Logic.display.getHeight());
 		scene.setFill(Color.TRANSPARENT);
 		setScene(scene);
 
+		// Display the Scene and wait for a close request to occur.
 		showAndWait();
 	}
 }
