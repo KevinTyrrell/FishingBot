@@ -1,7 +1,9 @@
 package program;
 
+import gui.GUI;
+
 import java.awt.Color;
-import java.awt.GraphicsDevice;
+import java.awt.DisplayMode;
 import java.awt.GraphicsEnvironment;
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -35,7 +37,8 @@ public abstract class Logic
 	public static Random generator = new Random();
 	
 	// Gets the resolution of the user's main display.
-	private static GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();	
+	public static DisplayMode display = GraphicsEnvironment.getLocalGraphicsEnvironment()
+			.getDefaultScreenDevice().getDisplayMode();	
 	
 	// Set by the user to allow the program to fish properly.
 	public static Point calibrationPoint;
@@ -54,22 +57,22 @@ public abstract class Logic
 		// For users with slower computers. Their GPU needs time to load the Bobber in.
 		sleep(2000);
 		
-		final int HORIZONTAL_JUMP_DISTANCE = 45, VERTICAL_JUMP_DISTANCE = 15;
-		int screenWidth = gd.getDisplayMode().getWidth();
-		int screenHeight = gd.getDisplayMode().getHeight();
+		// Pixel distance to jump each time. Checking every single pixel takes too long.
+		final int HORIZONTAL_JUMP_DISTANCE = display.getWidth() / 42;
+		final int VERTICAL_JUMP_DISTANCE = display.getHeight() / 72;
 		
 		// Loop through a given area of the display, while skipping over a significant amount of pixels.
-		for (int i = (int) (screenWidth * 0.3); i < screenWidth * 0.7; i = i + HORIZONTAL_JUMP_DISTANCE)
+		for (int i = (int) (display.getWidth() * 0.3); i < display.getWidth() * 0.7; i = i + HORIZONTAL_JUMP_DISTANCE)
 		{
-			for (int h = (int) (screenHeight * 0.5); h < screenHeight * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
+			for (int h = (int) (display.getHeight() * 0.45); h < display.getHeight() * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
 			{
-				// The mouse must be moved so the bobber for the in-game tooltip to pop up.
+				// Move the mouse so the bobber tooltip will appear.
 				pc.mouseMove(i, h);	
 				
-				// Get the current pixel color of where the user set their calibration point.
+				// Check the color of the pixel that the user showed us previously by calibrating.
 				Color pixel = pc.getPixelColor((int) calibrationPoint.getX(), (int) calibrationPoint.getY());
 				
-				// If there is a goldish color there, then the tooltip is there and we are over the bobber.
+				// If there is a gold-ish color there, then the tooltip is showing so we must be over the bobber.
 				if (pixel.getRed() > 200 && pixel.getGreen() > 200 && pixel.getBlue() < 50)	
 				{
 					return true;
@@ -90,24 +93,25 @@ public abstract class Logic
 	 */
 	public static boolean attemptToReel()
 	{
-		// The threshhold of the color BLUE in which the program determines a splash occured.
+		// Sensitivity threshhold in which we determine there was too much of color change.
 		double clickThreshhold = 30.0;
+		
 		// The NORMAL amount of blue around the bobber, before it has splashed.
-		double controlBluePerPixel = checkAroundPixel((int) MouseInfo.getPointerInfo().getLocation().getX(), 
-				(int) MouseInfo.getPointerInfo().getLocation().getY());
+		Point mouse = MouseInfo.getPointerInfo().getLocation();
+		double controlBluePerPixel = checkAroundPixel(mouse.getX(), mouse.getY());
 		
 		// The time at which we originally found the bobber.
 		long startTime = System.currentTimeMillis();
 		
 		// As long as the fishing cast is still going.
-		while (System.currentTimeMillis() - startTime < 30000)
+		while (System.currentTimeMillis() - startTime < 25000)
 		{
 			// Prevent lag from too fast of scans.
 			sleep(25);
 			
 			// Determine the average amount of blue currently in each pixel.
-			double currentBluePerPixel = checkAroundPixel((int) MouseInfo.getPointerInfo().getLocation().getX(), 
-					(int) MouseInfo.getPointerInfo().getLocation().getY()) - controlBluePerPixel;
+			mouse = MouseInfo.getPointerInfo().getLocation();
+			double currentBluePerPixel = checkAroundPixel(mouse.getX(),	mouse.getY()) - controlBluePerPixel;
 			
 			// If there is a lot more blue than before...
 			if (currentBluePerPixel > clickThreshhold)
@@ -136,13 +140,20 @@ public abstract class Logic
 	}
 	
 	/**
-	 * 
-	 * @return
+	 * Different users have different displays, different UI's, etc.
+	 * This program relies on the fishing bobber tooltip so we need to
+	 * allow the user specifically define where we can find their tooltip.
+	 * @return whether the calibration was successful or not.
 	 */
 	public static boolean calibrate()
 	{
-		// Sleep for 4 seconds to allow the user to get ready.
-		sleep(4000);
+		// Allow the user to get ready before calibrating.
+		int value = 5;
+		for (int i = 0; i < value; i++)
+		{
+			GUI.consoleMessage("Calibrating in " + (value - i) + " seconds.");
+			sleep(1000);
+		}
 		
 		// Take a screenshot.
 		BufferedImage screen = screenshot();
@@ -178,7 +189,7 @@ public abstract class Logic
 	 * @param y coordinate.
 	 * @return average blue value per pixel.
 	 */
-	private static double checkAroundPixel(int x, int y)
+	private static double checkAroundPixel(double x, double y)
 	{
 		// Total counter for the amount of BLUE in the search area.
 		int total = 0;
@@ -190,10 +201,10 @@ public abstract class Logic
 		BufferedImage screen = screenshot();
 		
 		// Don't allow the loop to go out of bounds.
-		int xAxisStart = (x - PIXEL_RADIUS < 0) ? 0 : x - PIXEL_RADIUS;
-		int xAxisEnd = (x + PIXEL_RADIUS > screen.getWidth()) ? screen.getWidth() : x + PIXEL_RADIUS;
-		int yAxisStart = (y - PIXEL_RADIUS < 0) ? 0 : y - PIXEL_RADIUS;
-		int yAxisEnd = (y + PIXEL_RADIUS > screen.getWidth()) ? screen.getWidth() : y + PIXEL_RADIUS;
+		int xAxisStart = (int) ((x - PIXEL_RADIUS < 0) ? 0 : x - PIXEL_RADIUS);
+		int xAxisEnd = (int) ((x + PIXEL_RADIUS > screen.getWidth()) ? screen.getWidth() : x + PIXEL_RADIUS);
+		int yAxisStart = (int) ((y - PIXEL_RADIUS < 0) ? 0 : y - PIXEL_RADIUS);
+		int yAxisEnd = (int) ((y + PIXEL_RADIUS > screen.getWidth()) ? screen.getWidth() : y + PIXEL_RADIUS);
 		
 		// Loop through the designated pixel area.
 		for (int i = xAxisStart; i < xAxisEnd; i++)
