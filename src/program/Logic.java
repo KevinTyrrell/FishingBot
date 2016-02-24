@@ -40,9 +40,11 @@ public abstract class Logic
 	public static DisplayMode display = GraphicsEnvironment.getLocalGraphicsEnvironment()
 			.getDefaultScreenDevice().getDisplayMode();	
 	
-	// Set by the user to allow the program to fish properly.
+	/** Point set by the user to dermine where the 'Fishing Bobber' frame is. */
 	public static Point calibrationPoint;
-	
+	/** Two points which represent the scan area of the 'calibrate' method. */
+	public static Point topLeft = new Point((int) (display.getWidth() * 0.8), (int) (display.getHeight() * 0.65));
+	public static Point bottomRight = new Point((int) display.getWidth(), (int) (display.getHeight() * 0.9));	
 	/**
 	 * Loops through the middle of the user's main display screen
 	 * in search for the fishing bobber.
@@ -66,6 +68,9 @@ public abstract class Logic
 		{
 			for (int h = (int) (display.getHeight() * 0.45); h < display.getHeight() * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
 			{
+				// TODO: Decide if pausing here is effective.
+				sleep(10);
+				
 				// Move the mouse so the bobber tooltip will appear.
 				pc.mouseMove(i, h);	
 				
@@ -105,8 +110,8 @@ public abstract class Logic
 		
 		// As long as the fishing cast is still going.
 		while (System.currentTimeMillis() - startTime < 25000)
-		{
-			// Prevent lag from too fast of scans.
+		{			
+			// Prevent crazy amounts of CPU from being used.
 			sleep(25);
 			
 			// Determine the average amount of blue currently in each pixel.
@@ -151,6 +156,7 @@ public abstract class Logic
 		int value = 5;
 		for (int i = 0; i < value; i++)
 		{
+			// Warn the user that calibration is about to begin.
 			GUI.consoleMessage("Calibrating in " + (value - i) + " seconds.");
 			sleep(1000);
 		}
@@ -158,11 +164,11 @@ public abstract class Logic
 		// Take a screenshot.
 		BufferedImage screen = screenshot();
 		
-		// Look in the bottom right hand corner of the user's screen.
-		for (int i = (int) (screen.getWidth() * .8); i < screen.getWidth(); i++)
+		// Search the calibration point.
+		for (int i = topLeft.x; i < bottomRight.x; i++)
 		{
-			for (int j = (int) (screen.getHeight() * .8); j < screen.getHeight(); j++)
-			{
+			for (int j = topLeft.y; j < bottomRight.y; j++)
+			{				
 				// Check every pixel...
 				Color pixel = convertColorFromBytes(screen.getRGB(i, j));
 				

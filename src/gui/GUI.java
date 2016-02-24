@@ -37,10 +37,6 @@ public class GUI extends Application
 	{
 		// Assign the stage as an instance variable.
 		GUI.stage = stage;
-
-		
-		SquareSelector square = new SquareSelector(stage.getOwner());
-		System.exit(0);
 		
 		try 
 		{
@@ -150,6 +146,7 @@ public class GUI extends Application
 			}).start();
 		});
 
+		// HBox which houses the three main buttons.
 		HBox buttonHB = new HBox(start, end, calibrate);
 		buttonHB.setAlignment(Pos.CENTER);
 		buttonHB.setSpacing(20);
@@ -157,9 +154,19 @@ public class GUI extends Application
 		{
 			setRegionSize((Region) i, 125, 45);
 		}
+		
+		// Have a button for a custom search area for the calibration method.
+		Button calibrateAreaBtn = new Button("Custom Calibrate Zone");
+		calibrateAreaBtn.setOnAction(e ->
+		{
+			// Show a square to the user, and allow them to draw their own calibraiton points.
+			SquareSelector box = new SquareSelector(scene.getWindow());
+			Logic.topLeft = box.getTopLeft();
+			Logic.bottomRight = box.getBottomRight();
+		});
 
 		// Add all the fields to the layout.
-		root.getChildren().addAll(consoleTitle, console, buttonHB);
+		root.getChildren().addAll(consoleTitle, console, buttonHB, calibrateAreaBtn);
 
 		scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
 		stage.setTitle("FishingBot");
