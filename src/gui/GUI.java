@@ -14,6 +14,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.geometry.Insets;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
@@ -28,7 +30,10 @@ public class GUI extends Application
 	private static Stage stage;
 	private Label consoleTitle;
 	private static TextArea console;
-	private Button start, end, calibrate;
+	private Button startBtn, endBtn, calibrateBtn, calibrateAreaBtn;
+	public static ChoiceBox<String> lureCB;
+	public static CheckBox lureCKB;
+	private HBox buttonHB, lureHB;
 
 	private final int SCENE_WIDTH = 450, SCENE_HEIGHT = 400;
 	public static final String DEBUG_PANE_BORDER = "-fx-border-color: blue;\n" + "-fx-border-insets: 5;\n" + "-fx-border-width: 3;\n" + "-fx-border-style: dashed;\n";
@@ -51,7 +56,7 @@ public class GUI extends Application
 		}
 
 		// TESTING
-		promptUser("FishingBot has detected the following display: " + Logic.display.getWidth() + " x " + Logic.display.getHeight() + ".");
+		//promptUser("FishingBot has detected the following display: " + Logic.display.getWidth() + " x " + Logic.display.getHeight() + ".");
 		//Stopwatch watch = new Stopwatch();
 
 		// Root Pane.
@@ -71,83 +76,46 @@ public class GUI extends Application
 		setRegionSize(console, SCENE_WIDTH - 20, 200);
 
 		// Start Fishing Button.
-		start = new Button("Run");
-		start.setTooltip(new Tooltip("Begin the fishing loop, once calibrated."));
-		start.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
-		start.setOnAction(e ->
+		startBtn = new Button("Run");
+		startBtn.setTooltip(new Tooltip("Begin the fishing loop, once calibrated."));
+		startBtn.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
+		startBtn.setOnAction(e ->
 		{
-			// Fishing must be calibrated before use.
-			if (Logic.calibrationPoint != null)
-			{
-				// Fishing cannot be activated twice.
-				if (!Logic.fishingActive)
-				{
-					// User wants to start fishing.
-					consoleMessage("FISHING MODE: ON");
-					Logic.fishingActive = true;
-
-					// Loop should be on it's own thread so it doesn't freeze the GUI.
-					new Thread(new Runnable()
-					{
-						public void run()
-						{
-							// Give the user time to click into WoW.
-							Logic.sleep(3000);
-							
-							// Continue until told otherwise.
-							while (Logic.fishingActive)
-							{
-								// Start fishing.
-								Logic.Say("/cast Fishing");
-
-								// Scan for the bobber, then reel the fish in. Print errors if something goes wrong.
-								consoleMessage(Logic.scanForBobber() ? (Logic.attemptToReel() ? "Fish caught and looted."
-										: "Located fish but failed to detect a splash!") : "Failed to detect the bobber!");
-							}
-						}
-					}).start();
-				}
-			}
-			else
-			{
-				// User tried to fish without calibrating.
-				promptUser("You must first calibrate the program before you begin fishing!");
-			}
+			Logic.startFishing();
 		});
 
 		// End Fishing Button.
-		end = new Button("End");
-		end.setTooltip(new Tooltip("Ends the fishing loop, if it is running."));
-		end.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
-		end.setOnAction(e ->
+		endBtn = new Button("End");
+		endBtn.setTooltip(new Tooltip("Ends the fishing loop, if it is running."));
+		endBtn.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
+		endBtn.setOnAction(e ->
 		{
 			if (Logic.fishingActive)
 			{
 				// User wants to stop fishing.
 				Logic.fishingActive = false;
+				lureCB.setDisable(false);
+				lureCKB.setDisable(false);
 				consoleMessage("Fishing Mode: OFF");
 			}
 		});
 
 		// Calibration Button.
-		calibrate = new Button("Calibrate");
-		calibrate.setTooltip(new Tooltip("Calibrate the program by manually casting your bobber, and hovering your mouse over it."));
-		calibrate.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
-		calibrate.setOnAction(e ->
+		calibrateBtn = new Button("Calibrate");
+		calibrateBtn.setTooltip(new Tooltip("Calibrate the program by manually casting\nyour bobber, and hovering your mouse over it."));
+		calibrateBtn.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
+		calibrateBtn.setOnAction(e ->
 		{
 			// Loop should be on it's own thread so it doesn't freeze the GUI.
-			new Thread(new Runnable()
+			new Thread(() ->
 			{
-				public void run()
-				{
-					// Print whether the Calibration was successful.
-					consoleMessage("Calibration was " + (Logic.calibrate() ? "successful" : "unsuccessful") + ".");
-				}
+				// Print whether the Calibration was successful.
+				consoleMessage("Calibration was " + (Logic.calibrate() ? "successful" : "unsuccessful") + ".");
 			}).start();
 		});
 
 		// HBox which houses the three main buttons.
-		HBox buttonHB = new HBox(start, end, calibrate);
+		buttonHB = new HBox(startBtn, endBtn, calibrateBtn);
 		buttonHB.setAlignment(Pos.CENTER);
 		buttonHB.setSpacing(20);
 		for (Node i : buttonHB.getChildren())
@@ -155,18 +123,48 @@ public class GUI extends Application
 			setRegionSize((Region) i, 125, 45);
 		}
 		
+		// CheckBox for the user to activate bobber control.
+		lureCKB = new CheckBox();
+		lureCKB.setOnAction(e ->
+		{
+			lureCB.setValue(null);
+			lureCB.setVisible(lureCKB.selectedProperty().get());
+			startBtn.setDisable(lureCKB.isSelected());
+		});
+		
+		// ChoiceBox for the type of lures.
+		lureCB = new ChoiceBox<>();
+		lureCB.getItems().addAll(
+				"Aquadynamic Fish Attractor",
+				"Aquadynamic Fish Lens",
+				"Bright Baubles",
+				"Flesh Eating Worm",
+				"Nightcrawlers",
+				"Shiny Bauble"
+		);
+		lureCB.setVisible(false);
+		lureCB.setOnAction(e ->
+		{
+			// Allow the user to fish if he selects a bobber.
+			startBtn.setDisable(false);
+		});
+		
+		// HBox to house the lure controls in.
+		lureHB = new HBox(lureCKB, lureCB);
+		lureHB.setAlignment(Pos.CENTER);
+				
 		// Have a button for a custom search area for the calibration method.
-		Button calibrateAreaBtn = new Button("Custom Calibrate Zone");
+		calibrateAreaBtn = new Button("Custom Calibrate Zone");
 		calibrateAreaBtn.setOnAction(e ->
 		{
-			// Show a square to the user, and allow them to draw their own calibraiton points.
+			// Show a square to the user, and allow them to draw their own calibration points.
 			SquareSelector box = new SquareSelector(scene.getWindow());
 			Logic.topLeft = box.getTopLeft();
 			Logic.bottomRight = box.getBottomRight();
 		});
 
 		// Add all the fields to the layout.
-		root.getChildren().addAll(consoleTitle, console, buttonHB, calibrateAreaBtn);
+		root.getChildren().addAll(consoleTitle, console, buttonHB, lureHB, calibrateAreaBtn);
 
 		scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
 		stage.setTitle("FishingBot");
@@ -204,7 +202,7 @@ public class GUI extends Application
 	 * @param width of the region.
 	 * @param height of the region.
 	 */
-	public static void setRegionSize(Region item, int width, int height)
+	private static void setRegionSize(Region item, int width, int height)
 	{
 		item.setMaxWidth(width);
 		item.setMinWidth(width);

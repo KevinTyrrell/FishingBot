@@ -19,7 +19,6 @@ import java.time.LocalTime;
 import java.util.Random;
 
 import static java.awt.event.KeyEvent.*;
-import Exceptions.ApplicationNotFound;
 
 /**
  * Abstract class which handles all calculations and loops
@@ -34,17 +33,88 @@ public abstract class Logic
 	/** Boolean trigger in order to cancel out or begin the fishing loop. */
 	public static boolean fishingActive = false;
 	/** Random seed to allow for seudo random 'sleep' times after a successful catch. */
-	public static Random generator = new Random();
+	private static final Random generator = new Random();
+	/** Amount of time before a lure effect fades. */
+	private static final long LURE_DURATION = 600000;
+	/** Timer which logs when a lure was last used. */
+	private static long lureTime = System.currentTimeMillis() - LURE_DURATION;
+	/** Statement in-game which will pick up your fishing pole. Used to attach lures. */
+	private static final String ATTACH_LURE_COMMAND = "/script PickupInventoryItem(16)";
 	
 	// Gets the resolution of the user's main display.
-	public static DisplayMode display = GraphicsEnvironment.getLocalGraphicsEnvironment()
+	public static final DisplayMode display = GraphicsEnvironment.getLocalGraphicsEnvironment()
 			.getDefaultScreenDevice().getDisplayMode();	
 	
 	/** Point set by the user to dermine where the 'Fishing Bobber' frame is. */
-	public static Point calibrationPoint;
+	private static Point calibrationPoint;
 	/** Two points which represent the scan area of the 'calibrate' method. */
 	public static Point topLeft = new Point((int) (display.getWidth() * 0.8), (int) (display.getHeight() * 0.65));
-	public static Point bottomRight = new Point((int) display.getWidth(), (int) (display.getHeight() * 0.9));	
+	public static Point bottomRight = new Point((int) display.getWidth(), (int) (display.getHeight() * 0.9));
+
+	public static void startFishing()
+	{
+		// Double check that the user has WoW.exe open.
+		try
+		{
+			if (!processIsRunning("WoW.exe"))
+			{
+				GUI.promptUser("Could not locate the running application : \"Wow.exe\". Please ensure that the application is running before fishing.");
+				return;
+			}
+		}
+		catch (IOException e)
+		{
+			GUI.promptUser("Could not read your processes! Error is as follows: " + e.getStackTrace());
+		}
+
+		// Fishing must be calibrated before use.
+		if (calibrationPoint != null)
+		{
+			// Fishing cannot be activated twice.
+			if (!fishingActive)
+			{
+				// User wants to start fishing.
+				GUI.lureCB.setDisable(true);
+				GUI.lureCKB.setDisable(true);
+				GUI.consoleMessage("FISHING MODE: ON");
+				fishingActive = true;
+
+				// Loop should be on it's own thread so it doesn't freeze the GUI.
+				new Thread(() ->
+				{
+					// Give the user time to click into WoW.
+					sleep(3000);
+
+					// Continue until told otherwise.
+					while (fishingActive)
+					{
+						// Check if a lure needs to be used...
+						if (GUI.lureCKB.isSelected() && System.currentTimeMillis() - lureTime > LURE_DURATION)
+						{
+                            // Attach a lure.
+							Say("/use " + GUI.lureCB.getValue());
+                            Say(ATTACH_LURE_COMMAND);
+                            lureTime = System.currentTimeMillis();
+                            sleep(10000);
+						}
+
+						// Start fishing.
+						Say("/cast Fishing");
+
+						// Scan for the bobber, then reel the fish in. Print errors if something goes wrong.
+						GUI.consoleMessage(scanForBobber() ? (attemptToReel() ? "Fish caught and looted."
+								: "Located fish but failed to detect a splash!") : "Failed to detect the bobber!");
+					}
+				}).start();
+			}
+		}
+		else
+		{
+			// User tried to fish without calibrating.
+			GUI.promptUser("You must first calibrate the program before you begin fishing!");
+		}
+	}
+
 	/**
 	 * Loops through the middle of the user's main display screen
 	 * in search for the fishing bobber.
@@ -54,7 +124,7 @@ public abstract class Logic
 	 * the 'Fishing Bobber' tooltip in the bottom right hand corner.
 	 * @return whether it was successful or not.
 	 */
-	public static boolean scanForBobber()
+	private static boolean scanForBobber()
 	{
 		// For users with slower computers. Their GPU needs time to load the Bobber in.
 		sleep(2000);
@@ -66,7 +136,7 @@ public abstract class Logic
 		// Loop through a given area of the display, while skipping over a significant amount of pixels.
 		for (int i = (int) (display.getWidth() * 0.3); i < display.getWidth() * 0.7; i = i + HORIZONTAL_JUMP_DISTANCE)
 		{
-			for (int h = (int) (display.getHeight() * 0.45); h < display.getHeight() * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
+			for (int h = (int) (display.getHeight() * 0.5); h < display.getHeight() * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
 			{
 				// TODO: Decide if pausing here is effective.
 				sleep(10);
@@ -96,7 +166,7 @@ public abstract class Logic
 	 * This method is only called after the bobber is found.
 	 * @return whether it was successful or not.
 	 */
-	public static boolean attemptToReel()
+	private static boolean attemptToReel()
 	{
 		// Sensitivity threshhold in which we determine there was too much of color change.
 		double clickThreshhold = 30.0;
@@ -234,10 +304,9 @@ public abstract class Logic
 	 * This is possibly window's specific.
 	 * @param process name.
 	 * @return whether the process is running or not.
-	 * @throws ApplicationNotFound
 	 * @throws IOException
 	 */
-	public static boolean processIsRunning(String process) throws ApplicationNotFound, IOException
+	private static boolean processIsRunning(String process) throws IOException
 	{
 		String line;
 		String pidInfo = "";
@@ -251,14 +320,7 @@ public abstract class Logic
 		}
 		input.close();
 		
-		if (pidInfo.contains(process))
-		{
-			return true;
-		}
-		else 
-		{
-			throw new ApplicationNotFound();
-		}
+		return pidInfo.contains(process);
 	}
 	
 	/**
@@ -281,7 +343,7 @@ public abstract class Logic
 	 * user's primary monitor, incase the user has multiple monitors.
 	 * @return BufferedImage screenshot.
 	 */
-	public static BufferedImage screenshot()
+	private static BufferedImage screenshot()
 	{	
 		return pc.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
 	}
@@ -291,8 +353,8 @@ public abstract class Logic
 	 * The bot will use this to call '/cast Fishing'
 	 * @param sentence.
 	 */
-	public static void Say(String sentence)
-	{
+	private static void Say(String sentence)
+    {
 		Press(KeyEvent.VK_ENTER);
 
 		for (int i = 0; i < sentence.length(); i++)
@@ -300,6 +362,7 @@ public abstract class Logic
 			type(sentence.charAt(i));
 		}
 
+        sleep(50);
 		Press(KeyEvent.VK_ENTER);
 	}
 
@@ -319,7 +382,7 @@ public abstract class Logic
 	 * that given key via virtual keys.
 	 * @param character to type.
 	 */
-	public static void type(char character) 
+	private static void type(char character)
 	{
         switch (character) 
         {
@@ -398,8 +461,8 @@ public abstract class Logic
         case '^': doType(VK_CIRCUMFLEX); break;
         case '&': doType(VK_AMPERSAND); break;
         case '*': doType(VK_ASTERISK); break;
-        case '(': doType(VK_LEFT_PARENTHESIS); break;
-        case ')': doType(VK_RIGHT_PARENTHESIS); break;
+        case '(': doType(VK_SHIFT, VK_9); break;
+        case ')': doType(VK_SHIFT, VK_0); break;
         case '_': doType(VK_UNDERSCORE); break;
         case '+': doType(VK_PLUS); break;
         case '\t': doType(VK_TAB); break;
@@ -453,7 +516,7 @@ public abstract class Logic
      * for the InterruptedException that Thread.sleep() produces.
      * @param miliseconds to sleep for.
      */
-    public static void sleep(int miliseconds)
+    private static void sleep(int miliseconds)
     {
     	try
 		{

@@ -15,8 +15,8 @@ import javafx.stage.Window;
 
 class ConfirmationBox extends Stage
 {
-	private VBox layout = new VBox();
-	private ReadOnlyBooleanWrapper selected = new ReadOnlyBooleanWrapper();
+	private final VBox layout = new VBox();
+	private final ReadOnlyBooleanWrapper selected = new ReadOnlyBooleanWrapper();
 
 	public boolean isSelected()
 	{

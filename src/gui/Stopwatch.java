@@ -14,7 +14,7 @@ public class Stopwatch extends Region
 	private enum StopWatchStatus
 	{
 		STOPPED, RUNNING, PAUSE
-	};
+	}
 
 	StopwatchWorker stopwatchWorker;
 	StopWatchStatus currentStatus = StopWatchStatus.STOPPED;
