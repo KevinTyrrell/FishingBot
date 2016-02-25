@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.Random;
 
 import static java.awt.event.KeyEvent.*;
@@ -35,7 +36,7 @@ public abstract class Logic
 	/** Random seed to allow for seudo random 'sleep' times after a successful catch. */
 	private static final Random generator = new Random();
 	/** Amount of time before a lure effect fades. */
-	private static final long LURE_DURATION = 600000;
+	private static final long LURE_DURATION = 630000;
 	/** Timer which logs when a lure was last used. */
 	private static long lureTime = System.currentTimeMillis() - LURE_DURATION;
 	/** Statement in-game which will pick up your fishing pole. Used to attach lures. */
