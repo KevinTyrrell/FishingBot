@@ -2,8 +2,10 @@ package gui;
 
 import java.awt.AWTException;
 import java.awt.Robot;
+import java.io.File;
 import java.time.LocalTime;
 
+import javafx.scene.image.Image;
 import program.*;
 import javafx.application.Application;
 import javafx.scene.control.Button;
@@ -54,6 +56,9 @@ public class GUI extends Application
 			promptUser("FishingBot was unable to communicate with your computer. Stack trace is as follows: " + e.getStackTrace());
 			System.exit(1);
 		}
+
+		// Add an icon for the application.
+		stage.getIcons().add(new Image(new File("res/fbicon.png").toURI().toString()));
 
 		// TESTING
 		//promptUser("FishingBot has detected the following display: " + Logic.display.getWidth() + " x " + Logic.display.getHeight() + ".");
@@ -163,8 +168,20 @@ public class GUI extends Application
 			Logic.bottomRight = box.getBottomRight();
 		});
 
+		Button testTimer = new Button("DEBUG");
+		testTimer.setOnAction(e ->
+		{
+			new Thread(() ->
+			{
+				final int sleepSeconds = 6000;
+				consoleMessage("Closing program in " + sleepSeconds + " seconds.");
+				Logic.sleep(sleepSeconds  * 1000);
+				System.exit(0);
+			}).start();
+		});
+
 		// Add all the fields to the layout.
-		root.getChildren().addAll(consoleTitle, console, buttonHB, lureHB, calibrateAreaBtn);
+		root.getChildren().addAll(consoleTitle, console, buttonHB, lureHB, calibrateAreaBtn, testTimer);
 
 		scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
 		stage.setTitle("FishingBot");

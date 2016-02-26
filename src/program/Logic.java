@@ -16,7 +16,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalTime;
-import java.util.HashSet;
 import java.util.Random;
 
 import static java.awt.event.KeyEvent.*;
@@ -139,11 +138,11 @@ public abstract class Logic
 		{
 			for (int h = (int) (display.getHeight() * 0.5); h < display.getHeight() * 0.7; h = h + VERTICAL_JUMP_DISTANCE)
 			{
-				// TODO: Decide if pausing here is effective.
-				sleep(10);
-				
 				// Move the mouse so the bobber tooltip will appear.
-				pc.mouseMove(i, h);	
+				pc.mouseMove(i, h);
+
+				// Strategic pause here to allow computers without GPU's load the tooltip.
+				sleep(10);
 				
 				// Check the color of the pixel that the user showed us previously by calibrating.
 				Color pixel = pc.getPixelColor((int) calibrationPoint.getX(), (int) calibrationPoint.getY());
@@ -517,7 +516,7 @@ public abstract class Logic
      * for the InterruptedException that Thread.sleep() produces.
      * @param miliseconds to sleep for.
      */
-    private static void sleep(int miliseconds)
+    public static void sleep(int miliseconds)
     {
     	try
 		{
