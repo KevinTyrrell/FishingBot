@@ -37,7 +37,8 @@ public class GUI extends Application
 	public static CheckBox lureCKB;
 	private HBox buttonHB, lureHB;
 
-	private final int SCENE_WIDTH = 450, SCENE_HEIGHT = 400;
+	/** The dimensions of the application. */
+	private final int SCENE_WIDTH = 450, SCENE_HEIGHT = 425;
 	public static final String DEBUG_PANE_BORDER = "-fx-border-color: blue;\n" + "-fx-border-insets: 5;\n" + "-fx-border-width: 3;\n" + "-fx-border-style: dashed;\n";
 
 	@Override public void start(Stage stage) throws InterruptedException
@@ -173,7 +174,7 @@ public class GUI extends Application
 		{
 			new Thread(() ->
 			{
-				final int sleepSeconds = 6000;
+				final int sleepSeconds = 10800;
 				consoleMessage("Closing program in " + sleepSeconds + " seconds.");
 				Logic.sleep(sleepSeconds  * 1000);
 				System.exit(0);

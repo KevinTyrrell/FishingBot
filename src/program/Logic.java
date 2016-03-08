@@ -126,6 +126,9 @@ public abstract class Logic
 	 */
 	private static boolean scanForBobber()
 	{
+		// Reset the mouse position so we do not immediately hover over the bobber.
+		pc.mouseMove(0, 0);
+
 		// For users with slower computers. Their GPU needs time to load the Bobber in.
 		sleep(2000);
 		
@@ -199,17 +202,11 @@ public abstract class Logic
 				
 				// Sleep between 2 and 7 seconds randomly.
 				int randomSleep = generator.nextInt(5000);
-				sleep(2000 + randomSleep);	
-				
-				// Reset the mouse to ensure the next cast goes smoothly.
-				pc.mouseMove(200, 200);
+				sleep(2000 + randomSleep);
 				
 				return true;
 			}
 		}
-		
-		// Reset the mouse to ensure the next cast goes smoothly.
-		pc.mouseMove(200, 200);
 		
 		return false;
 	}
