@@ -53,39 +53,54 @@ public class SquareSelector extends Stage
 
 		topLeft = new Point(0, 0);
 		bottomRight = new Point(0, 0);
-		
+
 		Rectangle rect = new Rectangle();
+		// The origin which gets reset on every NEW click.
+        Point origin = new Point(0,0);
 		rect.setFill(Color.TRANSPARENT);
 		rect.setStroke(Color.BLACK);
 		// Dynamic stroke width based on monitor size.
 		rect.setStrokeWidth(Logic.display.getWidth() / 320);
 		Pane root = new Pane(rect);
 		root.setStyle("-fx-background-color: rgba(255, 255, 255, 0.3);");
-		
 
 		// When the user first clicks, prepare to create our rectangle.
 		root.setOnMousePressed(e ->
 		{
-			// Erase the previous Rectangle.
+            // Erase the previous Rectangle.
 			rect.setWidth(0);
 			rect.setHeight(0);
 			// Set the anchor point for our rectangle.
-			rect.setX(e.getX());
-			rect.setY(e.getY());
+			origin.x = (int) e.getX();
+            origin.y = (int) e.getY();
 		});
 		
 		// As the user drags the rectangle.
 		root.setOnMouseDragged(e ->
 		{
-			// Determine the width of the rectangle.
-			double width = e.getX() - rect.getX();
-			double height = e.getY() - rect.getY();
-			
-			rect.setWidth(width);
-			rect.setHeight(height);
+            // Quadrant four.
+            if (e.getX() > origin.getX() && e.getY() > origin.getY())
+            {
+                modifyRectangle(rect, origin.getX(), origin.getY(), e.getX() - origin.getX(), e.getY() - origin.getY());
+            }
+            // Quadrant one.
+            else if (e.getX() > origin.getX() && e.getY() < origin.getY())
+            {
+                modifyRectangle(rect, origin.getX(), e.getY(), e.getX() - origin.getX(), origin.getY() - e.getY());
+            }
+            // Quadrant two.
+            else if (e.getX() < origin.getX() && e.getY() < origin.getY())
+            {
+                modifyRectangle(rect, e.getX(), e.getY(), origin.getX() - e.getX(), origin.getY() - e.getY());
+            }
+            // Quadrant three.
+            else
+            {
+                modifyRectangle(rect, e.getX(), origin.getY(), origin.getX() - e.getX(), e.getY() - origin.getY());
+            }
 		});
 		
-		// When user lets go of the rectangle.
+		// When user lets go, finalize the rectangle.
 		root.setOnMouseReleased(e ->
 		{
 			// Set the coordinates that the user drew.
@@ -94,7 +109,7 @@ public class SquareSelector extends Stage
 			bottomRight.x = (int) rect.getX() + (int) rect.getWidth();
 			bottomRight.y = (int) rect.getY() + (int) rect.getHeight();
 			// Close the square selector.
-			close();
+            close();
 		});
 		
 		Scene scene = new Scene(root, Logic.display.getWidth(), Logic.display.getHeight());
@@ -104,4 +119,20 @@ public class SquareSelector extends Stage
 		// Display the Scene and wait for a close request to occur.
 		showAndWait();
 	}
+
+    /**
+     * Convenience method to assist in changing the location and direction of rectangles.
+     * @param shape provided.
+     * @param x coordinate.
+     * @param y coordinate.
+     * @param width of the Rectangle.
+     * @param height of the Rectangle.
+     */
+    private void modifyRectangle(Rectangle shape, double x, double y, double width, double height)
+    {
+        shape.setX(x);
+        shape.setY(y);
+        shape.setWidth(width);
+        shape.setHeight(height);
+    }
 }

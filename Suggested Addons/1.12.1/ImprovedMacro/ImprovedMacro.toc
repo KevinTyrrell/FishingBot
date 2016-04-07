@@ -1,0 +1,8 @@
+## Interface: 11200
+## Title: Improved Macro
+## Title-koKR: 슬래시 명령어 확장
+## Notes: Add some macro to the game
+## Notes-koKR: 장비셋 저장,로드 및 유용한 슬래시 명령어가 추가됩니다.
+## OptionalDeps: Sea, Cosmos
+## SavedVariablesPerCharacter: EquipmentSets
+ImprovedMacro.xml

@@ -5,10 +5,13 @@ import java.awt.Robot;
 import java.io.File;
 import java.time.LocalTime;
 
+import javafx.scene.control.*;
+import javafx.scene.effect.InnerShadow;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import program.*;
 import javafx.application.Application;
-import javafx.scene.control.Button;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -16,228 +19,320 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.geometry.Insets;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.Tooltip;
 import javafx.scene.text.Font;
 import javafx.geometry.Pos;
 import javafx.scene.paint.Color;
 
 public class GUI extends Application
 {
-	private VBox root;
-	private Scene scene;
-	private static Stage stage;
-	private Label consoleTitle;
-	private static TextArea console;
-	private Button startBtn, endBtn, calibrateBtn, calibrateAreaBtn;
-	public static ChoiceBox<String> lureCB;
-	public static CheckBox lureCKB;
-	private HBox buttonHB, lureHB;
+    private Scene scene;
+    private static Stage stage;
+    private Label lblConsole, lblLureCount, lblLureLogout, lblTimeLogout;
+    public static CheckBox chkLureLogout;
+    private static TextArea txaConsole;
+    public static TextField txfLureCount, txfTimeLogout;
+    private HBox hbxButtons, hbxLures, hbxLureDetails;
 
-	/** The dimensions of the application. */
-	private final int SCENE_WIDTH = 450, SCENE_HEIGHT = 425;
-	public static final String DEBUG_PANE_BORDER = "-fx-border-color: blue;\n" + "-fx-border-insets: 5;\n" + "-fx-border-width: 3;\n" + "-fx-border-style: dashed;\n";
+    /** The dimensions of the application. */
+    private final int SCENE_WIDTH = 450, SCENE_HEIGHT = 475;
 
-	@Override public void start(Stage stage) throws InterruptedException
-	{
-		// Assign the stage as an instance variable.
-		GUI.stage = stage;
-		
-		try 
-		{
-			// Initialize the Robot from the Logic class.
-			Logic.pc = new Robot();
-		}
-		catch (AWTException e)
-		{
-			// Cannot communicate with the PC. Exiting.
-			promptUser("FishingBot was unable to communicate with your computer. Stack trace is as follows: " + e.getStackTrace());
-			System.exit(1);
-		}
+    @Override
+    public void start(Stage stage) throws InterruptedException
+    {
+        // Initialize core variables.
+        GUI.stage = stage;
+        try { Logic.pc = new Robot(); }
+        catch (AWTException e)
+        {
+            // Cannot communicate with the PC. Exiting.
+            promptUser("FishingBot was unable to communicate with your computer. Stack trace is as follows: " + e);
+            System.exit(1);
+        }
 
-		// Add an icon for the application.
-		stage.getIcons().add(new Image(new File("res/fbicon.png").toURI().toString()));
+        // Root Pane.
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10, 10, 0, 10));
+        root.setAlignment(Pos.TOP_CENTER);
 
-		// TESTING
-		//promptUser("FishingBot has detected the following display: " + Logic.display.getWidth() + " x " + Logic.display.getHeight() + ".");
-		//Stopwatch watch = new Stopwatch();
+        // Title for console.
+        lblConsole = new Label("Console");
+        lblConsole.setFont(Font.font("Verdana", 20));
+        lblConsole.setTextFill(Color.web("#0076a3"));
 
-		// Root Pane.
-		root = new VBox();
-		root.setPadding(new Insets(10, 10, 0, 10));
-		root.setAlignment(Pos.TOP_CENTER);
-		root.setSpacing(10);
+        // Create the console.
+        txaConsole = new TextArea();
+        txaConsole.setEditable(false);
+        setRegionSize(txaConsole, SCENE_WIDTH - 20, 200);
 
-		// Title for console.
-		consoleTitle = new Label("Console");
-		consoleTitle.setFont(Font.font("Verdana", 20));
-		consoleTitle.setTextFill(Color.web("#0076a3"));
+        // Start Fishing Button.
+        Button btnStart = new Button("Run");
+        btnStart.setTooltip(new Tooltip("Begin fishing, once calibration is complete."));
+        btnStart.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
+        btnStart.setOnAction(e ->
+        {
+            // Error checking -- do not allow the user to fish under some circumstances.
+            if (Logic.calibrationPoint == null)
+            {
+                consoleMessage("You must calibrate the program before fishing!"); return;
+            }
+            else if (Logic.fishingActive) { consoleMessage("You are already fishing!"); return; }
+            else if (Logic.selectedLure != null && txfLureCount.getText().isEmpty())
+            {
+                consoleMessage("You must input how many bobbers of this type you currently have!");
+            }
 
-		// Create the console.
-		console = new TextArea();
-		console.setEditable(false);
-		setRegionSize(console, SCENE_WIDTH - 20, 200);
+            // Error checking over -- user can now fish.
+            disableNodes(true, txfLureCount, txfTimeLogout, chkLureLogout);
+            consoleMessage("Fishing Mode: ON");
+            Logic.startFishing();
+        });
 
-		// Start Fishing Button.
-		startBtn = new Button("Run");
-		startBtn.setTooltip(new Tooltip("Begin the fishing loop, once calibrated."));
-		startBtn.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
-		startBtn.setOnAction(e ->
-		{
-			Logic.startFishing();
-		});
+        // End Fishing Button.
+        Button btnEnd = new Button("End");
+        btnEnd.setTooltip(new Tooltip("Pauses the fishing cycle."));
+        btnEnd.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
+        btnEnd.setOnAction(e -> {
+            // Error checking.
+            if (!Logic.fishingActive) { consoleMessage("You are not currently fishing!"); return; }
 
-		// End Fishing Button.
-		endBtn = new Button("End");
-		endBtn.setTooltip(new Tooltip("Ends the fishing loop, if it is running."));
-		endBtn.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
-		endBtn.setOnAction(e ->
-		{
-			if (Logic.fishingActive)
-			{
-				// User wants to stop fishing.
-				Logic.fishingActive = false;
-				lureCB.setDisable(false);
-				lureCKB.setDisable(false);
-				consoleMessage("Fishing Mode: OFF");
-			}
-		});
+            // User wants to stop fishing.
+            Logic.fishingActive = false;
+            consoleMessage("Fishing Mode: OFF");
+            disableNodes(false, txfLureCount, txfTimeLogout, chkLureLogout);
+        });
 
-		// Calibration Button.
-		calibrateBtn = new Button("Calibrate");
-		calibrateBtn.setTooltip(new Tooltip("Calibrate the program by manually casting\nyour bobber, and hovering your mouse over it."));
-		calibrateBtn.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
-		calibrateBtn.setOnAction(e ->
-		{
-			// Loop should be on it's own thread so it doesn't freeze the GUI.
-			new Thread(() ->
-			{
-				// Print whether the Calibration was successful.
-				consoleMessage("Calibration was " + (Logic.calibrate() ? "successful" : "unsuccessful") + ".");
-			}).start();
-		});
+        // Calibration Button.
+        Button btnCalibrate = new Button("Calibrate");
+        btnCalibrate.setTooltip(new Tooltip("Attempts to locate where your \"Fishing Bobber\" tooltip is.\nRight click this to draw a new search area."));
+        btnCalibrate.setStyle("-fx-font: 22 arial; -fx-base: #b6e7c9;");
+        btnCalibrate.setOnMousePressed(e ->
+        {
+            if (e.getButton() == MouseButton.PRIMARY)
+            {
+                // Loop should be on it's own thread so it doesn't freeze the GUI.
+                new Thread(() -> {
+                    // Print whether the Calibration was successful.
+                    consoleMessage("Calibration " + (Logic.calibrate() ? "was successful." :
+                            "could not locate your Fishing Bobber tooltip!"));
+                }).start();
+            }
+            else if (e.getButton() == MouseButton.SECONDARY)
+            {
+                // Show a square to the user, and allow them to draw their own calibration points.
+                SquareSelector box = new SquareSelector(scene.getWindow());
+                Logic.topLeft = box.getTopLeft();
+                Logic.bottomRight = box.getBottomRight();
+            }
+        });
 
-		// HBox which houses the three main buttons.
-		buttonHB = new HBox(startBtn, endBtn, calibrateBtn);
-		buttonHB.setAlignment(Pos.CENTER);
-		buttonHB.setSpacing(20);
-		for (Node i : buttonHB.getChildren())
-		{
-			setRegionSize((Region) i, 125, 45);
-		}
-		
-		// CheckBox for the user to activate bobber control.
-		lureCKB = new CheckBox();
-		lureCKB.setOnAction(e ->
-		{
-			lureCB.setValue(null);
-			lureCB.setVisible(lureCKB.selectedProperty().get());
-			startBtn.setDisable(lureCKB.isSelected());
-		});
-		
-		// ChoiceBox for the type of lures.
-		lureCB = new ChoiceBox<>();
-		lureCB.getItems().addAll(
-				"Aquadynamic Fish Attractor",
-				"Aquadynamic Fish Lens",
-				"Bright Baubles",
-				"Flesh Eating Worm",
-				"Nightcrawlers",
-				"Shiny Bauble"
-		);
-		lureCB.setVisible(false);
-		lureCB.setOnAction(e ->
-		{
-			// Allow the user to fish if he selects a bobber.
-			startBtn.setDisable(false);
-		});
-		
-		// HBox to house the lure controls in.
-		lureHB = new HBox(lureCKB, lureCB);
-		lureHB.setAlignment(Pos.CENTER);
-				
-		// Have a button for a custom search area for the calibration method.
-		calibrateAreaBtn = new Button("Custom Calibrate Zone");
-		calibrateAreaBtn.setOnAction(e ->
-		{
-			// Show a square to the user, and allow them to draw their own calibration points.
-			SquareSelector box = new SquareSelector(scene.getWindow());
-			Logic.topLeft = box.getTopLeft();
-			Logic.bottomRight = box.getBottomRight();
-		});
+        // HBox which houses the three main buttons.
+        hbxButtons = new HBox(btnStart, btnEnd, btnCalibrate);
+        hbxButtons.setAlignment(Pos.CENTER);
+        hbxButtons.setSpacing(20);
+        for (Node i : hbxButtons.getChildren()) { setRegionSize((Region) i, 125, 45); }
 
-		Button testTimer = new Button("DEBUG");
-		testTimer.setOnAction(e ->
-		{
-			new Thread(() ->
-			{
-				final int sleepSeconds = 10800;
-				consoleMessage("Closing program in " + sleepSeconds + " seconds.");
-				Logic.sleep(sleepSeconds  * 1000);
-				System.exit(0);
-			}).start();
-		});
+		/*
+        LURE SECTION:
+		Consists of six icons for the user to interact with.
+		The 'selected' lure is the one that will be used in-game.
+	    Each lure has it's own time that it lasts for.
+		 */
+        // HBox to store our ImageView objects.
+        hbxLures = new HBox(5);
+        hbxLures.setAlignment(Pos.CENTER);
 
-		// Add all the fields to the layout.
-		root.getChildren().addAll(consoleTitle, console, buttonHB, lureHB, calibrateAreaBtn, testTimer);
+        // Go through all the different lures and add them to our HBox.
+        for (Lure i : Lure.values())
+        {
+            Image imgLure = new Image(new File("res/" + i.getImage()).toURI().toString());
+            ImageView imgvwLure = new ImageView(imgLure);
 
-		scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
-		stage.setTitle("FishingBot");
-		stage.setScene(scene);
-		stage.show();
-	}
+            // Event handlers -- Don't allow changes while fishing.
+            imgvwLure.setOnMouseEntered(e -> {
+                if (!Logic.fishingActive)
+                {
+                    imgvwLure.setScaleX(1.1);
+                    imgvwLure.setScaleY(1.1);
+                }
+            });
+            imgvwLure.setOnMouseExited(e -> {
+                if (!Logic.fishingActive)
+                {
+                    imgvwLure.setScaleX(1);
+                    imgvwLure.setScaleY(1);
+                }
+            });
+            imgvwLure.setOnMousePressed(e ->
+            {
+                if (!Logic.fishingActive)
+                {
+                    // If a lure is already selected...
+                    if (Logic.selectedLure != null)
+                    {
+                        // Erase all highlighting effects currently present.
+                        for (Node h : hbxLures.getChildren()) h.setEffect(null);
+                    }
 
-	/**
-	 * Main method. Launch(args) searches for the method START in this class.
-	 * @param args
-	 */
-	public static void main(String[] args)
-	{
-		launch(args);
-	}
+                    // Reset the effect and pointer if double press, otherwise enable glow.
+                    imgvwLure.setEffect((Logic.selectedLure == i) ? null : new InnerShadow(30.0, 2.0f, 2.0f, Color.GOLDENROD));
+                    Logic.selectedLure = ((Logic.selectedLure == i) ? null : i);
 
-	/**
-	 * Print out a message to the console.
-	 * @param message to be displayed.
-	 */
-	public static void consoleMessage(String message)
-	{
-		LocalTime now = LocalTime.now();
+                    // Set visibility of certain elements.
+                    lblLureCount.setVisible(Logic.selectedLure != null);
+                    txfLureCount.setVisible(Logic.selectedLure != null);
+                    txfLureCount.setText("");
+                    lblLureLogout.setVisible(false);
+                    chkLureLogout.setVisible(false);
+                    chkLureLogout.setSelected(false);
+                }
+            });
+            Tooltip.install(imgvwLure, new Tooltip(i.getName()));
 
-		String hour = "", minute = "", second = "";
-		hour = (now.getHour() > 12) ? "" + (now.getHour() % 12) : "" + now.getHour();
-		minute = (now.getMinute() < 10) ? "0" + now.getMinute() : "" + now.getMinute();
-		second = (now.getSecond() < 10) ? "0" + now.getSecond() : "" + now.getSecond();
+            imgvwLure.setOpacity(0.8);
+            hbxLures.getChildren().add(imgvwLure);
+        }
 
-		console.setText(hour + ":" + minute + ":" + second + ((now.getHour() < 12) ? " AM" : " PM") + " : " + message + "\n" + console.getText());
-	}
+        /*
+        Extra options below.
+        Options consist of the following:
+        Lure control, allowing user to say how many lures he has.
+        Logout conditions; program will exit and will logout in-game if out of lures.
+         */
+        lblLureCount = new Label("Lures Remaining: ");
+        lblLureCount.setFont(Font.font("Verdana", 14));
+        lblLureCount.setTextFill(Color.web("#0076a3"));
+        lblLureCount.setVisible(false);
+        txfLureCount = new TextField();
+        txfLureCount.setAlignment(Pos.CENTER);
+        txfLureCount.setPromptText("Ex. 5");
+        setRegionSize(txfLureCount, 45, 20);
+        txfLureCount.setVisible(false);
+        applyTextFormatter(txfLureCount, ".*[^0-9].*", 3);
+        txfLureCount.textProperty().addListener(e ->
+        {
+            lblLureLogout.setVisible(!(txfLureCount.getText().isEmpty()));
+            chkLureLogout.setVisible(!(txfLureCount.getText().isEmpty()));
+        });
 
-	/**
-	 * Sets the min and max width and height of a region.
-	 * @param width of the region.
-	 * @param height of the region.
-	 */
-	private static void setRegionSize(Region item, int width, int height)
-	{
-		item.setMaxWidth(width);
-		item.setMinWidth(width);
-		item.setMaxHeight(height);
-		item.setMinHeight(height);
-	}
+        hbxLureDetails = new HBox(4, lblLureCount, txfLureCount);
+        hbxLureDetails.setPadding(new Insets(10, 10, 0, 10));
+        hbxLureDetails.setAlignment(Pos.TOP_LEFT);
 
-	/**
-	 * Prompts the user with a window, which asks for a OK / Cancel input. OK
-	 * will yield TRUE and Cancel will yield FALSE.
-	 * @param message to be displayed.
-	 * @return which button the user selected.
-	 */
-	public static boolean promptUser(String message)
-	{
-		ConfirmationBox warningWindow = new ConfirmationBox(stage.getOwner(), message);
-		warningWindow.showAndWait();
-		return warningWindow.isSelected();
-	}
+        // CheckBox for logout options.
+        lblLureLogout = new Label("Logout/Exit at 0 Lures?");
+        lblLureLogout.setPadding(new Insets(0, 0, 0, 60));
+        lblLureLogout.setFont(Font.font("Verdana", 12));
+        lblLureLogout.setTextFill(Color.web("#0076a3"));
+        lblLureLogout.setOnMouseClicked(e ->
+        {
+            // Clicking on the label will click on the CheckBox.
+            chkLureLogout.setSelected(!chkLureLogout.isSelected());
+            chkLureLogout.requestFocus();
+        });
+        chkLureLogout = new CheckBox();
+        chkLureLogout.setVisible(false);
+        lblLureLogout.setVisible(false);
+        hbxLureDetails.getChildren().addAll(lblLureLogout, chkLureLogout);
+
+        // Time-based logout.
+        lblTimeLogout = new Label("Time to Logout?:");
+        lblTimeLogout.setFont(Font.font("Verdana", 14));
+        lblTimeLogout.setTextFill(Color.web("#0076a3"));
+        txfTimeLogout = new TextField();
+        setRegionSize(txfTimeLogout, 45, 20);
+        txfTimeLogout.setPromptText("mins.");
+        txfTimeLogout.setAlignment(Pos.CENTER);
+        applyTextFormatter(txfTimeLogout, ".*[^0-9].*", 4);
+
+        HBox hbxTimeLogout = new HBox(10, lblTimeLogout, txfTimeLogout);
+        hbxTimeLogout.setPadding(new Insets(10, 10, 0, 10));
+        hbxTimeLogout.setAlignment(Pos.TOP_LEFT);
+
+        // Add all the fields to the layout.
+        root.getChildren().addAll(lblConsole, txaConsole, hbxButtons, hbxLures, hbxTimeLogout, hbxLureDetails);
+
+        scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
+        stage.getIcons().add(new Image(new File("res/fbicon.png").toURI().toString()));
+        stage.setResizable(false);
+        stage.setTitle("FishingBot");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    /**
+     * Main method. Launch(args) searches for the method START in this class.
+     * @param args from command line.
+     */
+    public static void main(String[] args)
+    {
+        launch(args);
+    }
+
+    /**
+     * Print out a message to the console.
+     * @param message to be displayed.
+     */
+    public static void consoleMessage(String message)
+    {
+        LocalTime now = LocalTime.now();
+
+        String hour, minute, second;
+        hour = (now.getHour() > 12) ? "" + (now.getHour() % 12) : "" + now.getHour();
+        minute = (now.getMinute() < 10) ? "0" + now.getMinute() : "" + now.getMinute();
+        second = (now.getSecond() < 10) ? "0" + now.getSecond() : "" + now.getSecond();
+
+        txaConsole.setText(hour + ":" + minute + ":" + second + ((now.getHour() < 12) ? " AM" : " PM") + " : " + message + "\n" + txaConsole.getText());
+    }
+
+    /**
+     * Applies a text formatter to this control.
+     * This formatter prevents certain inputs depending on the given parameters.
+     * @param control to be applied to.
+     * @param regex to be used.
+     * @param maxLength to be used.
+     */
+    private static void applyTextFormatter(TextInputControl control, String regex, int maxLength)
+    {
+        control.setTextFormatter(new TextFormatter<String>((TextFormatter.Change change) ->
+        {
+            // The text that is going to be applied...
+            String newText = change.getControlNewText();
+            // Rejects the input if it is too long or matches the given regex.
+            return (newText.length() > maxLength || newText.matches(regex)) ? null : change;
+        }));
+    }
+
+    /**
+     * Sets the min and max width and height of a region.
+     * @param width  of the region.
+     * @param height of the region.
+     */
+    private static void setRegionSize(Region item, int width, int height)
+    {
+        item.setMaxSize(width, height);
+        item.setMinSize(width, height);
+    }
+
+    /**
+     * Prompts the user with a window, which asks for a OK / Cancel input. OK
+     * will yield TRUE and Cancel will yield FALSE.
+     * @param message to be displayed.
+     * @return which button the user selected.
+     */
+    public static boolean promptUser(String message)
+    {
+        ConfirmationBox warningWindow = new ConfirmationBox(stage.getOwner(), message);
+        warningWindow.showAndWait();
+        return warningWindow.isSelected();
+    }
+
+    /**
+     * Disables or enables one or more Node objects.
+     * @param disableProperty enable or disable.
+     * @param nodes to be affected.
+     */
+    private static void disableNodes(boolean disableProperty, Node... nodes)
+    {
+        for (Node i : nodes) { i.setDisable(disableProperty); }
+    }
 }
