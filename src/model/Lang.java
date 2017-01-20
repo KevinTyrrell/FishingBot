@@ -13,7 +13,7 @@ public final class Lang
      * Z: Stable, bug fixes.
      * G: Unstable, bug fixes.
      */
-    private static final String VERSION_NUMBER = "2.0.0.0";
+    private static final String VERSION_NUMBER = "2.0.1.0";
 
     /** English. */
     public static final String

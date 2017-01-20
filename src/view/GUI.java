@@ -35,7 +35,7 @@ public class GUI extends Application
     public void start(final Stage primaryStage) throws InterruptedException
     {
         /* Convenience variables. */
-        final int WINDOW_WIDTH = 500, WINDOW_HEIGHT = 550;
+        final int WINDOW_WIDTH = 475, WINDOW_HEIGHT = 550;
         final double CIRCLE_FRAME_RADIUS = 35.0;
         final String STYLESHEET_PATH = "/Style.css";
 

@@ -265,22 +265,23 @@ public class TimePicker extends Spinner<LocalTime>
     {
         /** Whether or not to increment or decrement during the hold event. */
         private boolean increment;
-        private long startTimestamp;
+        private long startTS_ms;
         private Node ndeButton;
 
-        /* 0.75 second delay. */
-        private static final long DELAY = 1000L * 1000L * 750L;
+        /* Delay of pressing the button to when the changing of value goes faster. */
+        private static final long HOLD_DELAY = 550L, CHANGE_DELAY = 40L;
 
         private final AnimationTimer timer = new AnimationTimer()
         {
             @Override
-            public void handle(long now)
+            public void handle(final long now)
             {
-                if (Tools.timePassed(startTimestamp, DELAY))
+                if (Tools.timePassed(startTS_ms, HOLD_DELAY))
                 {
                     /* Once the press delay is over, trigger events once per frame. */
                     if (increment) increment();
                     else decrement();
+                    Tools.sleep(CHANGE_DELAY);
                 }
             }
         };
@@ -317,19 +318,17 @@ public class TimePicker extends Spinner<LocalTime>
             /* If the increment or decrement arrows could not be located, ignore this event. */
             if (increment == null)
                 return;
-            /* Event will now be handled by us, not by the Spinner. Consume it. */
-            event.consume();
             TimePicker.this.requestFocus();
             /* Tell the animation timer whether or not to increase or decrease. */
             this.increment = increment;
             /* Starting timestamp for the delay. */
-            startTimestamp = System.nanoTime();
+            startTS_ms = System.currentTimeMillis();
             /* Setup pointer to the button so we can later change the CSS state. */
             ndeButton = node;
             /* Indicate to the stylesheets that the Button was pressed. */
             node.pseudoClassStateChanged(PRESSED, true);
             /* Perform one increment, and wait the delay time. */
-            timer.handle(startTimestamp + DELAY);
+            timer.handle(startTS_ms + HOLD_DELAY);
             /* Begin the incrementation loop. */
             timer.start();
         }
