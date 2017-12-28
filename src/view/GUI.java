@@ -1,12 +1,13 @@
 package view;
 
+import static localization.Lang.*;
+import static localization.Lang.Locale.*;
+
 import controller.Controller;
-import controller.SaveData;
+import controller.Conversation;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -15,48 +16,97 @@ import javafx.scene.effect.BlurType;
 import javafx.scene.effect.InnerShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
-import model.Lang;
+import localization.Macros;
 import model.LureType;
 
 import java.io.File;
+import java.net.URL;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Arrays;
 
-public class GUI extends Application
+public final class GUI extends Application
 {
-    /** Selection Window for calibration uses. */
-    public static SelectionWindow winSelect;
-    public static ExtraOptionWindow winOptions;
-
     @Override
     public void start(final Stage primaryStage) throws InterruptedException
     {
         /* Convenience variables. */
         final int WINDOW_WIDTH = 475, WINDOW_HEIGHT = 550;
-        final double CIRCLE_FRAME_RADIUS = 35.0;
-        final String STYLESHEET_PATH = "/Style.css";
 
-        /* Nodes. */
-        final Label lblConsole = new Label(Lang.EN_NODE_CONSOLE),
-                lblSpeed = new Label(Lang.EN_LABEL_SPEED),
-                lblSensitivity = new Label(Lang.EN_LABEL_SENSITIVITY);
+        /* External windows for the program. */
+        // TODO: Implement.
+        //final SelectionWindow winSelect = new SelectionWindow(primaryStage);
+        //final ExtraOptionWindow winOptions = new ExtraOptionWindow(primaryStage);
+
+        final Pane root = createRootPane(primaryStage);
+
+        /* CSS stylesheets. */
+        final Scene scene = new Scene(root);
+        final URL stylesheet = getClass().getClassLoader().getResource(Macros.PATH_MAIN_STYLESHEET);
+        if (stylesheet != null)
+            scene.getStylesheets().add(stylesheet.toExternalForm());
+        else System.err.println("Unable to locate stylesheet: ".concat(Macros.PATH_MAIN_STYLESHEET));
+        //lblConsole.setId("console-text");
+
+        /* Window setup. */
+        primaryStage.getIcons().add(new Image(new File("images/icon.png").toURI().toString()));
+        primaryStage.setResizable(false);
+        primaryStage.setTitle(LABEL_TITLE.get());
+        primaryStage.setWidth(WINDOW_WIDTH);
+        primaryStage.setHeight(WINDOW_HEIGHT);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
+
+    }
+
+    private static Pane createRootPane(final Stage stage)
+    {
+        assert stage != null;
+
+        /* Constants. */
+        final double CIRCLE_FRAME_RADIUS = 35.0;
+
+        /* Controls (without text). */
         final TextArea txaConsole = new TextArea();
-        final ToggleButton tgbOnTop = new ToggleButton(Lang.EN_LABEL_ON_TOP),
-                tgbDebug = new ToggleButton(Lang.EN_LABEL_DEBUG);
         final ImageView imgQuest = new ImageView(),
                 imgMouse = new ImageView();
-        final Button btnStart = new Button(Lang.EN_NODE_START),
-                btnStop = new Button(Lang.EN_NODE_STOP),
-                btnCalibrate = new Button(Lang.EN_NODE_CALIBRATE, imgMouse);
         final Slider sldDelay = new Slider(),
                 sldSensitivity = new Slider();
         final Circle cirFrame = new Circle(CIRCLE_FRAME_RADIUS);
 
+        /* Controls (with text). */
+        final Label lblConsole = new Label(),
+                lblSpeed = new Label(),
+                lblSensitivity = new Label();
+        final ToggleButton tgbOnTop = new ToggleButton(),
+                tgbDebug = new ToggleButton();
+        final Button btnStart = new Button(),
+                btnStop = new Button();
+
+        /* If the active language changes, labels will update. */
+        final Labeled[] labels = new Labeled[]{
+                lblConsole, lblSpeed, lblSensitivity, tgbOnTop,
+                tgbDebug, btnStart, btnStop
+        };
+        final Locale[] locales = new Locale[] {
+                LABEL_CONSOLE, LABEL_SPEED, LABEL_SENSITIVITY,
+                LABEL_ON_TOP, LABEL_DEBUG, LABEL_START, LABEL_STOP
+        };
+        assert labels.length == locales.length;
+        for (int i = 0; i < labels.length; i++)
+        {
+            labels[i].textProperty().bind(Bindings.createStringBinding(
+                    locales[i]::get, activeLanguageProperty()));
+        }
+
         /* Panes. */
-        final HBox hbxButtons = new HBox(btnStart, btnStop, btnCalibrate),
+        final HBox hbxButtons = new HBox(btnStart, btnStop),
                 hbxLures = new HBox();
         final GridPane grdOptions = new GridPane();
         final VBox vbxRoot = new VBox(lblConsole, txaConsole, hbxButtons, hbxLures, grdOptions);
@@ -64,71 +114,33 @@ public class GUI extends Application
 
         /* Effects. */
         final InnerShadow insBrighten = new InnerShadow(
-                BlurType.GAUSSIAN, Color.rgb(255, 255, 255, 0.15), 10, 1.0, 100, 100);
+                BlurType.GAUSSIAN, Color.rgb(255, 255, 255, 0.15),
+                10, 1.0, 100, 100);
 
-        /* External windows for the program. */
-        winSelect = new SelectionWindow(primaryStage);
-        winOptions = new ExtraOptionWindow(primaryStage);
-
-        /* Event listeners. */
-        btnStart.setOnAction(e -> Controller.start());
-        btnStop.setOnAction(e -> Controller.stop());
-        btnCalibrate.addEventHandler(MouseEvent.MOUSE_PRESSED, event ->
-        {
-            if (event.isSecondaryButtonDown())
-                winSelect.showAndWait();
-            else
-                Controller.calibrate();
-        });
-        btnStop.disableProperty().bind(btnStart.disableProperty().not());
-        btnCalibrate.disableProperty().bind(btnStart.disabledProperty());
-        Controller.debugMode.bind(tgbDebug.selectedProperty());
-        tgbOnTop.selectedProperty().addListener((observable, oldValue, newValue) -> primaryStage.setAlwaysOnTop(newValue));
+        /* Event listeners and bindings. */
+        btnStop.disableProperty().bind(btnStart.disabledProperty().not());
+        btnStart.setOnAction(e -> btnStart.setDisable(Controller.INSTANCE.start()));
+        btnStop.setOnAction(e -> btnStart.setDisable(Controller.INSTANCE.stop()));
+        tgbOnTop.selectedProperty().addListener((observable, oldValue, newValue) -> stage.setAlwaysOnTop(newValue));
 
         /* Console attributes. */
         txaConsole.setEditable(false);
         txaConsole.setFocusTraversable(false);
         txaConsole.setWrapText(true);
-        Controller.setMsgListener(message ->
+        /* Connect the back-end's messages to the front end's console. */
+        final DateTimeFormatter dateFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM);
+        final Conversation.MessageListener listener = message ->
         {
             txaConsole.setScrollTop(Double.MIN_VALUE);
-            txaConsole.appendText(message.concat(System.lineSeparator()));
-        });
+            txaConsole.appendText(String.format("%s: %s%s",
+                    LocalTime.now().format(dateFormat), message, System.lineSeparator()));
+        };
+        Controller.INSTANCE.getMainConversation().listenIn(listener);
+        Controller.INSTANCE.getDebugConversation().listenIn(listener);
 
         /* Lure section. */
-        final ObjectProperty<ImageView> prpIvwLure = new SimpleObjectProperty<>();
-        final ObjectProperty<LureType> prpCurrentLure = new SimpleObjectProperty<>();
-        for (final LureType i : LureType.values())
-        {
-            final Image imgLure = new Image(ClassLoader.class.getResourceAsStream("/".concat(i.getPath())));
-            final ImageView ivwLure = new ImageView(imgLure);
-            ivwLure.setPreserveRatio(true);
-            /* Scale the size of lures down depending on how many lures there are. */
-            ivwLure.setFitHeight(Math.min(imgLure.getHeight() * 6 / LureType.values().length, imgLure.getHeight() * 1.25));
-
-            /* Allow only one activated lure at a time. */
-            ivwLure.setOnMousePressed(e ->
-            {
-                /* The lure user clicked on is different than the one he already had enabled. */
-                if (ivwLure != prpIvwLure.get())
-                {
-                    /* Cancel the glow on the previous ImageView. */
-                    if (prpIvwLure.get() != null) prpIvwLure.get().setId(null);
-                    ivwLure.setId(Lang.CSS_LURE_GLOW);
-                    prpIvwLure.set(ivwLure);
-                    prpCurrentLure.set(i);
-                }
-                else
-                {
-                    ivwLure.setId(null);
-                    prpIvwLure.set(null);
-                    prpCurrentLure.set(null);
-                }
-            });
-            Tooltip ttpName = new Tooltip(i.getName());
-            Tooltip.install(ivwLure, ttpName);
-            hbxLures.getChildren().add(ivwLure);
-        }
+        Arrays.stream(LureType.values()).forEach(e ->
+                hbxLures.getChildren().add(new LureButton(e)));
 
         /* Extra Options section. */
         sldDelay.setValue(sldDelay.getMax() * 0.75);
@@ -148,13 +160,7 @@ public class GUI extends Application
         /* Brighten the Node when the user hovers over it. */
         cirFrame.setOnMouseEntered(e -> ((Node) e.getSource()).setEffect(insBrighten));
         cirFrame.setOnMouseExited(e -> ((Node) e.getSource()).setEffect(null));
-        cirFrame.setOnMouseClicked(e -> winOptions.showAndWait());
-
-        /* Attempt to load saved data from file. */
-        final SaveData save = SaveData.load();
-        if (save != null)
-            save.sync(sldDelay.valueProperty(), sldSensitivity.valueProperty(),
-                    tgbOnTop.selectedProperty(), tgbDebug.selectedProperty());
+        //cirFrame.setOnMouseClicked(e -> winOptions.showAndWait());
 
         /* Gridpane. */
         final ColumnConstraints colOne = new ColumnConstraints(120),
@@ -168,41 +174,14 @@ public class GUI extends Application
         grdOptions.add(sldSensitivity, 1, row++, 3, 1);
         grdOptions.addRow(row, tgbOnTop, stkFrame, tgbDebug);
 
-        /* Initialize sync with back-end and front-end. */
-        Controller.init(btnStart.disableProperty(),
-                prpCurrentLure,
-                sldDelay.valueProperty().negate().add(sldDelay.getMax()),
-                sldSensitivity.maxProperty().subtract(sldSensitivity.valueProperty()).divide(10),
-                winOptions.numLures.valueProperty(),
-                Bindings.when(winOptions.chkQuitTime.selectedProperty())
-                        .then(winOptions.tpkLogoutTime.timeProperty())
-                        .otherwise(new SimpleObjectProperty<>(null)),
-                winOptions.chkQuitLures.selectedProperty());
-
         /* Tooltips for all controls. */
-                btnStart.setTooltip(new Tooltip(Lang.EN_TOOLTIP_START));
-        btnStop.setTooltip(new Tooltip(Lang.EN_TOOLTIP_STOP));
-        btnCalibrate.setTooltip(new Tooltip(Lang.EN_TOOLTIP_CALIBRATE));
-        tgbOnTop.setTooltip(new Tooltip(Lang.EN_TOOLTIP_ON_TOP));
-        tgbDebug.setTooltip(new Tooltip(Lang.EN_TOOLTIP_DEBUG));
-        Tooltip.install(cirFrame, new Tooltip(Lang.EN_TOOLTIP_EXTRA_OPTIONS));
+        btnStart.setTooltip(new Tooltip(TOOLTIP_START.get()));
+        btnStop.setTooltip(new Tooltip(TOOLTIP_STOP.get()));
+        tgbOnTop.setTooltip(new Tooltip(TOOLTIP_ON_TOP.get()));
+        tgbDebug.setTooltip(new Tooltip(TOOLTIP_DEBUG.get()));
+        Tooltip.install(cirFrame, new Tooltip(TOOLTIP_OPTIONS.get()));
 
-        /* CSS stylesheets. */
-        final Scene scene = new Scene(vbxRoot);
-        scene.getStylesheets().add(getClass().getResource(STYLESHEET_PATH).toExternalForm());
-        lblConsole.setId("console-text");
-
-        /* If the window is closing, save any data. */
-        primaryStage.setOnCloseRequest(event -> SaveData.save(
-                new SaveData(sldDelay.valueProperty(), sldSensitivity.valueProperty(),
-                        tgbOnTop.selectedProperty(), tgbDebug.selectedProperty())));
-        primaryStage.getIcons().add(new Image(new File("icon.png").toURI().toString()));
-        primaryStage.setResizable(false);
-        primaryStage.setTitle(Lang.EN_TITLE);
-        primaryStage.setWidth(WINDOW_WIDTH);
-        primaryStage.setHeight(WINDOW_HEIGHT);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        return vbxRoot;
     }
 
     /**
@@ -211,6 +190,7 @@ public class GUI extends Application
      */
     public static void main(String[] args)
     {
+        assert args != null;
         launch(args);
     }
 }

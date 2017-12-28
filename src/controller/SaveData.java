@@ -2,8 +2,8 @@ package controller;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
-import model.Angler;
-import model.Lang;
+import model.Temp;
+import localization.Lang;
 
 import java.awt.*;
 import java.io.*;
@@ -30,7 +30,7 @@ public final class SaveData implements Serializable
     public SaveData(final DoubleProperty prpSpeed, final DoubleProperty prpSensitivity,
                     final BooleanProperty prpOnTop, final BooleanProperty prpDebug)
     {
-        ptCalibration = Angler.pntCalibration;
+        ptCalibration = Temp.pntCalibration;
         scanSpeed = prpSpeed.get();
         sensitivity = prpSensitivity.get();
         onTop = prpOnTop.get();
@@ -40,7 +40,7 @@ public final class SaveData implements Serializable
     public void sync(final DoubleProperty prpSpeed, final DoubleProperty prpSensitivity,
                      final BooleanProperty prpOnTop, final BooleanProperty prpDebug)
     {
-        Angler.pntCalibration = ptCalibration;
+        Temp.pntCalibration = ptCalibration;
         prpSpeed.set(scanSpeed);
         prpSensitivity.set(sensitivity);
         prpOnTop.set(onTop);

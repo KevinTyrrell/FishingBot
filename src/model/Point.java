@@ -18,62 +18,54 @@
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package controller;
-
-import static localization.Lang.Locale.*;
-
-import model.singleton.Angler;
+package model;
 
 /*
  * Name: Kevin Tyrrell
- * Date: 7/22/2017
+ * Date: 7/23/2017
  */
-public enum Controller
+public class Point
 {
-    INSTANCE;
+    /** Coordinates of this point. */
+    private int x, y;
     
-    /** Listener who is listening in on sent messages. */
-    private final Conversation mainConversation = new Conversation(), 
-            debugConversation = new Conversation();
-
-    /**
-     * Alert the back-end to begin 
-     * @return - True if the back-end was started.
-     */
-    public boolean start()
+    public Point(final int x, final int y)
     {
-        if (Angler.INSTANCE.isReady())
-        {
-            mainConversation.whisper(MSG_START.get());
-            Angler.INSTANCE.fish();
-            return true;
-        }
-        
-        return false;
-    }
-    
-    public boolean stop()
-    {
-        if (!Angler.INSTANCE.isReady())
-        {
-            mainConversation.whisper(MSG_END.get());
-            Angler.INSTANCE.interrupt();
-            return true;
-        }
-        
-        return false;
+        setX(x);
+        setY(y);
     }
 
     /**
-     * @return - The mainConversation.
+     * @param x - X coordinate of the point.
      */
-    public Conversation getMainConversation()
+    public void setX(final int x)
     {
-        return mainConversation;
+        assert x >= 0;
+        this.x = x;
     }
 
-    public Conversation getDebugConversation()
+    /**
+     * @param y - Y coordinate of the point.
+     */
+    public void setY(final int y)
     {
-        return debugConversation;
+        assert y >= 0;
+        this.y = y;
+    }
+
+    /**
+     * @return - X coordinate.
+     */
+    public int getX()
+    {
+        return x;
+    }
+
+    /**
+     * @return - Y coordinate.
+     */
+    public int getY()
+    {
+        return y;
     }
 }

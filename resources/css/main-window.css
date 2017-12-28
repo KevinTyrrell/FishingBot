@@ -1,0 +1,179 @@
+
+.root
+{
+    -fx-base: rgb(102, 99, 104);
+    -fx-background: rgb(79, 77, 81);
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-focus-traversable: false;
+}
+
+VBox
+{
+    -fx-padding: 10;
+    -fx-spacing: 15;
+    -fx-alignment: top-center;
+}
+
+Circle
+{
+    -fx-fill: linear-gradient(to left, #6f6f70, #58595b);
+    -fx-stroke-width: 3px;
+    -fx-stroke: black;
+}
+
+#quest
+{
+    -fx-image: url(../../../resources/quest.gif);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 0, 0);
+}
+
+#mouse
+{
+    -fx-image: url(../../../resources/mouse.png);
+    -fx-rotate: 30;
+    -fx-opacity: 0.8;
+}
+
+.image-view
+{
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 0, 0);
+}
+
+.image-view:hover
+{
+    -fx-scale-x: 1.15;
+    -fx-scale-y: 1.15;
+}
+
+#selected-lure
+{
+    -fx-effect: innershadow(gaussian, #d7e84f, 2.5, 2.0, 0, 0);
+}
+
+.button
+{
+    -fx-min-width: 125;
+    -fx-max-width: 125;
+    -fx-max-height: 55;
+    -fx-min-height: 55;
+    -fx-text-fill: white;
+    -fx-padding: 4 7 7 7;
+    -fx-background-insets: 0,0 0 5 0, 0 0 6 0, 0 0 7 0;
+    -fx-background-radius: 8;
+    -fx-background-color:
+    linear-gradient(from 0% 93% to 0% 100%, #3366FF 0%, #112359 100%),
+    #3366FF,
+    #2347B2,
+    radial-gradient(center 50% 50%, radius 100%, #3366FF, #2347B2);
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.75) , 4,0,0,1 );
+    -fx-font-weight: bold;
+    -fx-font-size: 1.25em;
+}
+
+.button:hover
+{
+    -fx-background-color:
+    linear-gradient(from 0% 93% to 0% 100%, #a34313 0%, #903b12 100%),
+    #9d4024,
+    #d86e3a,
+    radial-gradient(center 50% 50%, radius 100%, #ea7f4b, #c54e2c);
+}
+
+.button:pressed
+{
+    -fx-padding: 10 15 13 15;
+    -fx-background-insets: 2 0 0 0,2 0 3 0, 2 0 4 0, 2 0 5 0;
+}
+
+#console-text
+{
+    -fx-font: 30px Calibri;
+    -fx-text-fill: #ebe8ed;
+}
+
+.text-area
+{
+    -fx-font: 14px Calibri;
+    -fx-focus-traversable: false;
+    -fx-opacity: 0.8;
+}
+
+.text-area:focused
+{
+    -fx-background-color: -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0, 1, 2;
+    -fx-background-radius: 5, 4, 3;
+}
+
+.toggle-button
+{
+    -fx-min-width: 125px;
+    -fx-max-width: 125px;
+    -fx-text-fill: white;
+    -fx-border-style: solid;
+    -fx-border-color: black;
+    -fx-border-width: 2px;
+    -fx-padding: 8px;
+}
+
+.toggle-button:hover
+{
+    -fx-border-style: solid;
+    -fx-border-color: whitesmoke;
+    -fx-background-color: transparent;
+}
+
+.toggle-button:selected
+{
+    -fx-background-color:
+    linear-gradient(from 0% 93% to 0% 100%, #a34313 0%, #903b12 100%),
+    #9d4024,
+    #d86e3a,
+    radial-gradient(center 50% 50%, radius 100%, #ea7f4b, #c54e2c);
+}
+
+GridPane
+{
+    -fx-alignment: center;
+    /*-fx-hgap: 30;*/
+    -fx-vgap: 6px;
+    /*-fx-grid-lines-visible: true;*/
+}
+
+HBox
+{
+    -fx-alignment: center;
+    -fx-spacing: 15;
+}
+
+.slider
+{
+    -fx-min-width: 320;
+    -fx-max-width: 320;
+    -fx-snap-to-ticks: true;
+    -fx-show-tick-labels: true;
+    -fx-show-tick-marks: true;
+    -fx-minor-tick-count: 5;
+
+}
+
+.label
+{
+    -fx-font-family: calibri;
+    -fx-font-size: 16;
+    -fx-text-alignment: center;
+}
+
+.tooltip
+{
+    -fx-font: 16px Tahoma;
+    -fx-wrap-text: true;
+    -fx-content-display: center;
+}
+
+.text-field
+{
+    /* Spinner contains a text field so center is needed. */
+    -fx-alignment: center;
+}

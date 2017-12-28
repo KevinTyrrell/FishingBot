@@ -16,7 +16,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
-import model.Lang;
+import localization.Lang;
 import model.Tools;
 
 import java.awt.*;

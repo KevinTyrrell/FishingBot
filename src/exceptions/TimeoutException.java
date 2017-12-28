@@ -18,62 +18,35 @@
  * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package controller;
-
-import static localization.Lang.Locale.*;
-
-import model.singleton.Angler;
+package exceptions;
 
 /*
  * Name: Kevin Tyrrell
- * Date: 7/22/2017
+ * Date: 8/1/2017
  */
-public enum Controller
+public final class TimeoutException extends RuntimeException
 {
-    INSTANCE;
-    
-    /** Listener who is listening in on sent messages. */
-    private final Conversation mainConversation = new Conversation(), 
-            debugConversation = new Conversation();
-
-    /**
-     * Alert the back-end to begin 
-     * @return - True if the back-end was started.
-     */
-    public boolean start()
+    public TimeoutException(final String message)
     {
-        if (Angler.INSTANCE.isReady())
-        {
-            mainConversation.whisper(MSG_START.get());
-            Angler.INSTANCE.fish();
-            return true;
-        }
-        
-        return false;
-    }
-    
-    public boolean stop()
-    {
-        if (!Angler.INSTANCE.isReady())
-        {
-            mainConversation.whisper(MSG_END.get());
-            Angler.INSTANCE.interrupt();
-            return true;
-        }
-        
-        return false;
+        super(message);
     }
 
-    /**
-     * @return - The mainConversation.
-     */
-    public Conversation getMainConversation()
+    public TimeoutException(final String message, final Throwable cause)
     {
-        return mainConversation;
+        super(message, cause);
     }
 
-    public Conversation getDebugConversation()
+    public TimeoutException(final Throwable cause)
     {
-        return debugConversation;
+        super(cause);
+    }
+
+    public TimeoutException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace)
+    {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
+
+    public TimeoutException()
+    {
     }
 }

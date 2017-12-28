@@ -1,6 +1,6 @@
 package controller;
 
-import model.Lang;
+import localization.Lang;
 
 import java.io.*;
 

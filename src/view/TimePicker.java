@@ -325,7 +325,7 @@ public class TimePicker extends Spinner<LocalTime>
             startTS_ms = System.currentTimeMillis();
             /* Setup pointer to the button so we can later change the CSS state. */
             ndeButton = node;
-            /* Indicate to the stylesheets that the Button was pressed. */
+            /* Indicate to the styles that the Button was pressed. */
             node.pseudoClassStateChanged(PRESSED, true);
             /* Perform one increment, and wait the delay time. */
             timer.handle(startTS_ms + HOLD_DELAY);
