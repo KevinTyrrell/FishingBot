@@ -52,8 +52,8 @@ public final class Lure
         type.bind(LureButton.getTypeBinding());
         type.addListener((observable, oldValue, newValue) ->
         {
-            Controller.INSTANCE.getMainConversation()
-                    .whisper(String.format(Lang.Locale.MSGF_LURE_SWITCHED.get(), oldValue.toString(), ));
+            //Controller.INSTANCE.getMainConversation()
+                    //.whisper(String.format(Lang.Locale.MSGF_LURE_SWITCHED.get(), oldValue.toString(), ));
         });
         quantity = new SimpleIntegerProperty();
         ready = new SimpleBooleanProperty(true);
